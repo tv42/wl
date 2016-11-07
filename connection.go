@@ -1,4 +1,4 @@
-package wayland
+package wl
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 )
 
 type Connection struct {
-	mu              sync.Mutex
+	mu              sync.RWMutex
 	conn            *net.UnixConn
 	currentId       ProxyId
 	objects         map[ProxyId]Proxy
@@ -21,17 +21,27 @@ type Connection struct {
 
 func (context *Connection) Register(proxy Proxy) {
 	context.mu.Lock()
+	defer context.mu.Unlock()
 	context.currentId += 1
 	proxy.SetId(context.currentId)
 	proxy.SetConnection(context)
 	context.objects[context.currentId] = proxy
-	context.mu.Unlock()
+}
+
+func (context *Connection) lookupProxy(id ProxyId) Proxy {
+	context.mu.RLock()
+	proxy, ok := context.objects[id]
+	context.mu.RUnlock()
+	if !ok {
+		return nil
+	}
+	return proxy
 }
 
 func (context *Connection) Unregister(proxy Proxy) {
 	context.mu.Lock()
+	defer context.mu.Unlock()
 	delete(context.objects, proxy.Id())
-	context.mu.Unlock()
 }
 
 func (context *Connection) Close() error {
@@ -64,7 +74,7 @@ func ConnectDisplay(addr string) (ret *Display, err error) {
 	ctx.currentId = 0
 	ctx.dispatchRequest = make(chan bool)
 	ctx.exit = make(chan bool)
-	ctx.conn, err = net.DialUnix("unix", nil, &net.UnixAddr{addr, "unix"})
+	ctx.conn, err = net.DialUnix("unix", nil, &net.UnixAddr{Name: addr, Net: "unix"})
 	if err != nil {
 		return nil, err
 	}
@@ -121,8 +131,9 @@ func dispatchEvent(proxy Proxy, m *Message) {
 	f.Send(el)
 }
 
-func (context *Connection) run() error {
+func (context *Connection) run() {
 	context.conn.SetReadDeadline(time.Time{})
+loop:
 	for {
 		select {
 		case <-context.dispatchRequest:
@@ -130,14 +141,13 @@ func (context *Connection) run() error {
 			if err != nil {
 				continue
 			}
-			proxy, ok := context.objects[msg.Id]
-			if !ok {
-				return errors.New(fmt.Sprintf("Unknown object id: %d", msg.Id))
+
+			proxy := context.lookupProxy(msg.Id)
+			if proxy != nil {
+				dispatchEvent(proxy, msg)
 			}
-			dispatchEvent(proxy, msg)
 		case <-context.exit:
-			return nil
+			break loop
 		}
 	}
-	return nil
 }

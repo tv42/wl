@@ -1,4 +1,4 @@
-package wayland
+package wl
 
 import (
 	"fmt"
@@ -32,7 +32,7 @@ loop:
 	for {
 		select {
 		case dee := <-display.ErrorChan:
-			t.Log("Error: obj: %d, err_code: %d, msg: %s", dee.ObjectId.Id(), dee.Code, dee.Message)
+			t.Logf("Error: obj: %d, err_code: %d, msg: %s", dee.ObjectId.Id(), dee.Code, dee.Message)
 			t.Fail()
 			break loop
 		case <-callback.DoneChan:
@@ -63,7 +63,7 @@ loop:
 			t.Logf("Error: obj: %d, err_code: %d, msg: %s", dee.ObjectId.Id(), dee.Code, dee.Message)
 			t.Fail()
 		case ge := <-registry.GlobalChan:
-			t.Logf("Global obj %s %d %d", ge.Ifc, ge.Name, ge.Version)
+			t.Logf("Global obj %s %d %d", ge.Interface, ge.Name, ge.Version)
 			has_global = true
 		case <-time.After(100 * time.Millisecond):
 			break loop
@@ -76,7 +76,7 @@ loop:
 	}
 }
 
-func ExamplePaint() {
+func TestPaint(t *testing.T) {
 	var (
 		shm        *Shm
 		compositor *Compositor
@@ -117,30 +117,30 @@ loop:
 	for {
 		select {
 		case ev := <-registry.GlobalChan:
-			if ev.Ifc == "wl_shm" {
+			if ev.Interface == "wl_shm" {
 				shm = NewShm(display.Connection())
-				err = registry.Bind(ev.Name, ev.Ifc, ev.Version, shm)
+				err = registry.Bind(ev.Name, ev.Interface, ev.Version, shm)
 				if err != nil {
 					panic("unable to bind Shm object")
 				}
 			}
-			if ev.Ifc == "wl_compositor" {
+			if ev.Interface == "wl_compositor" {
 				compositor = NewCompositor(display.Connection())
-				err = registry.Bind(ev.Name, ev.Ifc, ev.Version, compositor)
+				err = registry.Bind(ev.Name, ev.Interface, ev.Version, compositor)
 				if err != nil {
 					panic("unable to bind Compositor object")
 				}
 			}
-			if ev.Ifc == "wl_shell" {
+			if ev.Interface == "wl_shell" {
 				shell = NewShell(display.Connection())
-				err = registry.Bind(ev.Name, ev.Ifc, ev.Version, shell)
+				err = registry.Bind(ev.Name, ev.Interface, ev.Version, shell)
 				if err != nil {
 					panic("unable to bind shell object")
 				}
 			}
-			if ev.Ifc == "wl_seat" {
+			if ev.Interface == "wl_seat" {
 				seat = NewSeat(display.Connection())
-				err = registry.Bind(ev.Name, ev.Ifc, ev.Version, seat)
+				err = registry.Bind(ev.Name, ev.Interface, ev.Version, seat)
 				if err != nil {
 					panic("unable to bind seat object")
 				}
@@ -236,6 +236,11 @@ main_loop:
 		case <-buf.ReleaseChan:
 		case <-pointer.EnterChan:
 		case <-pointer.LeaveChan:
+		case <-pointer.AxisChan:
+		case <-pointer.FrameChan:
+		case <-pointer.AxisSourceChan:
+		case <-pointer.AxisStopChan:
+		case <-pointer.AxisDiscreteChan:
 		case ev := <-shsurf.PingChan:
 			shsurf.Pong(ev.Serial)
 		case ev := <-pointer.MotionChan:

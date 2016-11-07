@@ -1,4 +1,4 @@
-package wayland
+package wl
 
 import (
 	"bytes"
@@ -41,9 +41,9 @@ func ReadWaylandMessage(conn *net.UnixConn) (*Message, error) {
 		}
 	}
 
-	msg.Id = ProxyId(binary.LittleEndian.Uint32(buf[0:4]))
-	msg.Opcode = uint32(binary.LittleEndian.Uint16(buf[4:6]))
-	msg.size = uint32(binary.LittleEndian.Uint16(buf[6:8]))
+	msg.Id = ProxyId(order.Uint32(buf[0:4]))
+	msg.Opcode = uint32(order.Uint16(buf[4:6]))
+	msg.size = uint32(order.Uint16(buf[6:8]))
 
 	// subtract 8 bytes from header
 	data := make([]byte, msg.size-8)
@@ -63,32 +63,31 @@ func ReadWaylandMessage(conn *net.UnixConn) (*Message, error) {
 func (m *Message) Write(arg interface{}) error {
 	switch t := arg.(type) {
 	case Proxy:
-		return binary.Write(m.data, binary.LittleEndian, uint32(t.Id()))
+		return binary.Write(m.data, order, uint32(t.Id()))
 	case uint32, int32:
-		return binary.Write(m.data, binary.LittleEndian, t)
+		return binary.Write(m.data, order, t)
 	case float32:
 		f := float64ToFixed(float64(t))
-		return binary.Write(m.data, binary.LittleEndian, f)
+		return binary.Write(m.data, order, f)
 	case string:
 		str, _ := arg.(string)
 		tail := 4 - (len(str) & 0x3)
-		err := binary.Write(m.data, binary.LittleEndian, uint32(len(str)+tail))
+		err := binary.Write(m.data, order, uint32(len(str)+tail))
 		if err != nil {
 			return err
 		}
-		err = binary.Write(m.data, binary.LittleEndian, []byte(str))
+		err = binary.Write(m.data, order, []byte(str))
 		if err != nil {
 			return err
 		}
 		padding := make([]byte, tail)
-		return binary.Write(m.data, binary.LittleEndian, padding)
+		return binary.Write(m.data, order, padding)
 	case uintptr:
 		rights := syscall.UnixRights(int(t))
-		return binary.Write(m.control, binary.LittleEndian, rights)
+		return binary.Write(m.control, order, rights)
 	default:
 		panic("Invalid Wayland request parameter type.")
 	}
-	return nil
 }
 
 func (m *Message) GetProxy(c *Connection) Proxy {
@@ -96,7 +95,7 @@ func (m *Message) GetProxy(c *Connection) Proxy {
 	if len(buf) != 4 {
 		panic("Unable to read object id")
 	}
-	return c.objects[ProxyId(binary.LittleEndian.Uint32(buf))]
+	return c.objects[ProxyId(order.Uint32(buf))]
 }
 
 func (m *Message) GetFD() uintptr {
@@ -119,7 +118,7 @@ func (m *Message) GetString() string {
 	if len(buf) != 4 {
 		panic("Unable to read string length")
 	}
-	l := int(binary.LittleEndian.Uint32(buf))
+	l := int(order.Uint32(buf))
 	buf = m.data.Next(l)
 	if len(buf) != l {
 		panic("Unable to read string")
@@ -127,7 +126,7 @@ func (m *Message) GetString() string {
 	ret := strings.TrimRight(string(buf), "\x00")
 	//padding to 32 bit boundary
 	if (l & 0x3) != 0 {
-		buf = m.data.Next(4 - (l & 0x3))
+		m.data.Next(4 - (l & 0x3))
 	}
 	return ret
 }
@@ -137,7 +136,7 @@ func (m *Message) GetInt32() int32 {
 	if len(buf) != 4 {
 		panic("Unable to read int")
 	}
-	return int32(binary.LittleEndian.Uint32(buf))
+	return int32(order.Uint32(buf))
 }
 
 func (m *Message) GetUint32() uint32 {
@@ -145,7 +144,7 @@ func (m *Message) GetUint32() uint32 {
 	if len(buf) != 4 {
 		panic("Unable to read unsigned int")
 	}
-	return binary.LittleEndian.Uint32(buf)
+	return order.Uint32(buf)
 }
 
 func (m *Message) GetFloat32() float32 {
@@ -153,7 +152,7 @@ func (m *Message) GetFloat32() float32 {
 	if len(buf) != 4 {
 		panic("Unable to read fixed")
 	}
-	return float32(fixedToFloat64(int32(binary.LittleEndian.Uint32(buf))))
+	return float32(fixedToFloat64(int32(order.Uint32(buf))))
 }
 
 func (m *Message) GetArray() []int32 {
@@ -161,14 +160,14 @@ func (m *Message) GetArray() []int32 {
 	if len(buf) != 4 {
 		panic("Unable to array len")
 	}
-	l := binary.LittleEndian.Uint32(buf)
+	l := order.Uint32(buf)
 	arr := make([]int32, l/4)
-	for _, i := range arr {
+	for i := range arr {
 		buf = m.data.Next(4)
 		if len(buf) != 4 {
 			panic("Unable to array element")
 		}
-		arr[i] = int32(binary.LittleEndian.Uint32(buf))
+		arr[i] = int32(order.Uint32(buf))
 	}
 	return arr
 }
@@ -187,8 +186,8 @@ func SendWaylandMessage(conn *net.UnixConn, m *Message) error {
 	header := &bytes.Buffer{}
 	// calculate message total size
 	m.size = uint32(m.data.Len() + 8)
-	binary.Write(header, binary.LittleEndian, m.Id)
-	binary.Write(header, binary.LittleEndian, m.size<<16|m.Opcode&0x0000ffff)
+	binary.Write(header, order, m.Id)
+	binary.Write(header, order, m.size<<16|m.Opcode&0x0000ffff)
 
 	d, c, err := conn.WriteMsgUnix(append(header.Bytes(), m.data.Bytes()...), m.control.Bytes(), nil)
 	if err != nil {
