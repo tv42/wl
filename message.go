@@ -69,18 +69,27 @@ func (m *Message) Write(arg interface{}) error {
 		f := float64ToFixed(float64(t))
 		return binary.Write(m.data, order, f)
 	case string:
-		str, _ := arg.(string)
-		tail := 4 - (len(str) & 0x3)
-		err := binary.Write(m.data, order, uint32(len(str)+tail))
+		tail := 4 - (len(t) & 0x3)
+		err := binary.Write(m.data, order, uint32(len(t)+tail))
 		if err != nil {
 			return err
 		}
-		err = binary.Write(m.data, order, []byte(str))
+		err = binary.Write(m.data, order, []byte(t))
 		if err != nil {
 			return err
 		}
-		padding := make([]byte, tail)
-		return binary.Write(m.data, order, padding)
+		// if padding required
+		if tail > 0 {
+			padding := make([]byte, tail)
+			return binary.Write(m.data, order, padding)
+		}
+		return nil
+	case []int32:
+		err := binary.Write(m.data, order, uint32(len(t)))
+		if err != nil {
+			return err
+		}
+		return binary.Write(m.data, order, t)
 	case uintptr:
 		rights := syscall.UnixRights(int(t))
 		return binary.Write(m.control, order, rights)
@@ -185,7 +194,7 @@ func SendWaylandMessage(conn *net.UnixConn, m *Message) error {
 	header := &bytes.Buffer{}
 	// calculate message total size
 	m.size = uint32(m.data.Len() + 8)
-	binary.Write(header, order, m.Id)
+	binary.Write(header, order, uint32(m.Id))
 	binary.Write(header, order, m.size<<16|m.Opcode&0x0000ffff)
 
 	d, c, err := conn.WriteMsgUnix(append(header.Bytes(), m.data.Bytes()...), m.control.Bytes(), nil)
