@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strings"
 	"syscall"
 )
 
@@ -123,7 +122,7 @@ func (m *Message) String() string {
 	if len(buf) != l {
 		panic("Unable to read string")
 	}
-	ret := strings.TrimRight(string(buf), "\x00")
+	ret := string(bytes.TrimRight(buf, "\x00"))
 	//padding to 32 bit boundary
 	if (l & 0x3) != 0 {
 		m.data.Next(4 - (l & 0x3))
