@@ -11,12 +11,12 @@ import (
 )
 
 type Connection struct {
-	mu              sync.RWMutex
-	conn            *net.UnixConn
-	currentId       ProxyId
-	objects         map[ProxyId]Proxy
-	dispatchRequest chan bool
-	exit            chan bool
+	mu           sync.RWMutex
+	conn         *net.UnixConn
+	currentId    ProxyId
+	objects      map[ProxyId]Proxy
+	dispatchChan chan bool
+	exitChan     chan bool
 }
 
 func (context *Connection) Register(proxy Proxy) {
@@ -49,12 +49,12 @@ func (context *Connection) Close() error {
 		return errors.New("Wayland connection not established.")
 	}
 	context.conn.Close()
-	context.exit <- true
+	context.exitChan <- true
 	return nil
 }
 
 func (context *Connection) Dispatch() chan<- bool {
-	return context.dispatchRequest
+	return context.dispatchChan
 }
 
 func ConnectDisplay(addr string) (ret *Display, err error) {
@@ -72,8 +72,8 @@ func ConnectDisplay(addr string) (ret *Display, err error) {
 	ctx := &Connection{}
 	ctx.objects = make(map[ProxyId]Proxy)
 	ctx.currentId = 0
-	ctx.dispatchRequest = make(chan bool)
-	ctx.exit = make(chan bool)
+	ctx.dispatchChan = make(chan bool)
+	ctx.exitChan = make(chan bool)
 	ctx.conn, err = net.DialUnix("unix", nil, &net.UnixAddr{Name: addr, Net: "unix"})
 	if err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ func (context *Connection) run() {
 loop:
 	for {
 		select {
-		case <-context.dispatchRequest:
+		case <-context.dispatchChan:
 			msg, err := ReadWaylandMessage(context.conn)
 			if err != nil {
 				continue
@@ -144,7 +144,7 @@ loop:
 			if proxy != nil {
 				dispatchEvent(proxy, msg)
 			}
-		case <-context.exit:
+		case <-context.exitChan:
 			break loop
 		}
 	}

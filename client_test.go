@@ -188,7 +188,7 @@ loop2:
 	}
 
 	// create shm buffer
-	file, err := CreateAnonymousFile(int(size))
+	file, err := CreateAnonymousFile(int64(size))
 	if err != nil {
 		panic("Unable to create file")
 	}

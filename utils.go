@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
-	"syscall"
 	"unsafe"
 )
 
@@ -20,21 +19,20 @@ func init() {
 	}
 }
 
-func CreateAnonymousFile(size int) (*os.File, error) {
-	template := "wayland-shared"
+func CreateAnonymousFile(size int64) (*os.File, error) {
 	dir := os.Getenv("XDG_RUNTIME_DIR")
 	if dir == "" {
 		panic("XDG_RUNTIME_DIR not defined.")
 	}
-	ret, err := ioutil.TempFile(dir, template)
+	file, err := ioutil.TempFile(dir, "wayland-shared")
 	if err != nil {
 		return nil, err
 	}
-	err = syscall.Ftruncate(int(ret.Fd()), int64(size))
+	err = file.Truncate(size)
 	if err != nil {
 		return nil, err
 	}
-	return ret, nil
+	return file, nil
 }
 
 func fixedToFloat64(fixed int32) float64 {
