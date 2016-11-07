@@ -90,15 +90,15 @@ func (m *Message) Write(arg interface{}) error {
 	}
 }
 
-func (m *Message) GetProxy(c *Connection) Proxy {
+func (m *Message) Proxy(c *Connection) Proxy {
 	buf := m.data.Next(4)
 	if len(buf) != 4 {
 		panic("Unable to read object id")
 	}
-	return c.objects[ProxyId(order.Uint32(buf))]
+	return c.lookupProxy(ProxyId(order.Uint32(buf)))
 }
 
-func (m *Message) GetFD() uintptr {
+func (m *Message) FD() uintptr {
 	if m.control_msgs == nil {
 		return 0
 	}
@@ -113,7 +113,7 @@ func (m *Message) GetFD() uintptr {
 	return uintptr(fds[0])
 }
 
-func (m *Message) GetString() string {
+func (m *Message) String() string {
 	buf := m.data.Next(4)
 	if len(buf) != 4 {
 		panic("Unable to read string length")
@@ -131,7 +131,7 @@ func (m *Message) GetString() string {
 	return ret
 }
 
-func (m *Message) GetInt32() int32 {
+func (m *Message) Int32() int32 {
 	buf := m.data.Next(4)
 	if len(buf) != 4 {
 		panic("Unable to read int")
@@ -139,7 +139,7 @@ func (m *Message) GetInt32() int32 {
 	return int32(order.Uint32(buf))
 }
 
-func (m *Message) GetUint32() uint32 {
+func (m *Message) Uint32() uint32 {
 	buf := m.data.Next(4)
 	if len(buf) != 4 {
 		panic("Unable to read unsigned int")
@@ -147,7 +147,7 @@ func (m *Message) GetUint32() uint32 {
 	return order.Uint32(buf)
 }
 
-func (m *Message) GetFloat32() float32 {
+func (m *Message) Float32() float32 {
 	buf := m.data.Next(4)
 	if len(buf) != 4 {
 		panic("Unable to read fixed")
@@ -155,7 +155,7 @@ func (m *Message) GetFloat32() float32 {
 	return float32(fixedToFloat64(int32(order.Uint32(buf))))
 }
 
-func (m *Message) GetArray() []int32 {
+func (m *Message) Array() []int32 {
 	buf := m.data.Next(4)
 	if len(buf) != 4 {
 		panic("Unable to array len")

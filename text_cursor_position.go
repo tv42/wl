@@ -8,7 +8,7 @@ type TextCursorPosition struct {
 	BaseProxy
 }
 
-func newTextCursorPosition(conn *Connection) *TextCursorPosition {
+func NewTextCursorPosition(conn *Connection) *TextCursorPosition {
 	ret := new(TextCursorPosition)
 	conn.Register(ret)
 	return ret

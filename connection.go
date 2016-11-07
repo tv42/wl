@@ -107,26 +107,24 @@ func dispatchEvent(proxy Proxy, m *Message) {
 	el := ev.Elem()
 	for i := 0; i < el.NumField(); i++ {
 		ef := el.Field(i)
-		var fv reflect.Value
 		switch ef.Kind() {
 		case reflect.Int32:
-			fv = reflect.ValueOf(m.GetInt32())
+			ef.SetInt(int64(m.Int32()))
 		case reflect.Uint32:
-			fv = reflect.ValueOf(m.GetUint32())
+			ef.SetUint(uint64(m.Uint32()))
 		case reflect.Float32:
-			fv = reflect.ValueOf(m.GetFloat32())
+			ef.SetFloat(float64(m.Float32()))
 		case reflect.String:
-			fv = reflect.ValueOf(m.GetString())
+			ef.SetString(m.String())
 		case reflect.Slice:
-			fv = reflect.ValueOf(m.GetArray())
+			ef.Set(reflect.ValueOf(m.Array()))
 		case reflect.Uintptr:
-			fv = reflect.ValueOf(m.GetFD())
+			ef.Set(reflect.ValueOf(m.FD()))
 		case reflect.Ptr:
-			fv = reflect.ValueOf(m.GetProxy(proxy.Connection())).Elem().Addr()
+			ef.Set(reflect.ValueOf(m.Proxy(proxy.Connection())).Elem().Addr())
 		default:
 			panic(fmt.Sprint("Not handled field type: ", ef.Kind().String()))
 		}
-		ef.Set(fv)
 	}
 	f.Send(el)
 }

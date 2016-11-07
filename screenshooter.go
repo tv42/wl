@@ -12,7 +12,7 @@ type WestonScreenshooter struct {
 type WestonScreenshooterDoneEvent struct {
 }
 
-func newWestonScreenshooter(conn *Connection) *WestonScreenshooter {
+func NewWestonScreenshooter(conn *Connection) *WestonScreenshooter {
 	ret := new(WestonScreenshooter)
 	ret.DoneChan = make(chan WestonScreenshooterDoneEvent)
 	conn.Register(ret)
