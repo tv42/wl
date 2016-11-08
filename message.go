@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
+	"log"
 	"net"
 	"syscall"
 )
@@ -36,7 +36,7 @@ func ReadWaylandMessage(conn *net.UnixConn) (*Message, error) {
 		}
 		msg.control_msgs, err = syscall.ParseSocketControlMessage(control)
 		if err != nil {
-			panic(fmt.Sprintf("Control message parse error: %s", err.Error()))
+			log.Panicf("Control message parse error: %s", err)
 		}
 	}
 
@@ -106,7 +106,8 @@ func (m *Message) Proxy(c *Connection) Proxy {
 	return c.lookupProxy(ProxyId(order.Uint32(buf)))
 }
 
-func (m *Message) FD() uintptr {
+// normally uintptr but always convert to uint64
+func (m *Message) FD() uint64 {
 	if m.control_msgs == nil {
 		return 0
 	}
@@ -118,7 +119,7 @@ func (m *Message) FD() uintptr {
 	if len(fds) != 1 {
 		panic("Expected 1 file descriptor, got more")
 	}
-	return uintptr(fds[0])
+	return uint64(fds[0])
 }
 
 func (m *Message) String() string {
@@ -199,7 +200,7 @@ func SendWaylandMessage(conn *net.UnixConn, m *Message) error {
 
 	d, c, err := conn.WriteMsgUnix(append(header.Bytes(), m.data.Bytes()...), m.control.Bytes(), nil)
 	if err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 	if c != m.control.Len() || d != (header.Len()+m.data.Len()) {
 		panic("WriteMsgUnix failed.")

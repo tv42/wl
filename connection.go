@@ -2,13 +2,17 @@ package wl
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"net"
 	"os"
 	"reflect"
 	"sync"
 	"time"
 )
+
+func init() {
+	log.SetFlags(0)
+}
 
 type Connection struct {
 	mu           sync.RWMutex
@@ -119,11 +123,13 @@ func dispatchEvent(proxy Proxy, m *Message) {
 		case reflect.Slice:
 			ef.Set(reflect.ValueOf(m.Array()))
 		case reflect.Uintptr:
-			ef.Set(reflect.ValueOf(m.FD()))
+			ef.SetUint(m.FD())
 		case reflect.Ptr:
 			ef.Set(reflect.ValueOf(m.Proxy(proxy.Connection())).Elem().Addr())
+		case reflect.Interface: // special for DisplayErrorEvent because it has Proxy field
+			ef.Set(v)
 		default:
-			panic(fmt.Sprint("Not handled field type: ", ef.Kind().String()))
+			log.Panicf("Not handled field type: Proxy:%#v Field:%#v ", v, el)
 		}
 	}
 	f.Send(el)
