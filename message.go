@@ -57,7 +57,7 @@ func ReadWaylandMessage(conn *net.UnixConn) (*Event, error) {
 	if n != int(size)-8 {
 		return nil, errors.New("Invalid message size.")
 	}
-	ev.data = data //bytes.NewBuffer(data)
+	ev.data = bytes.NewBuffer(data)
 	return ev, nil
 }
 
