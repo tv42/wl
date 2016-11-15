@@ -5,7 +5,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"reflect"
 	"sync"
 	"time"
 )
@@ -103,52 +102,27 @@ func (context *Connection) SendRequest(proxy Proxy, opcode uint32, args ...inter
 	return SendWaylandMessage(context.conn, msg)
 }
 
-func dispatchEvent(proxy Proxy, m *Message) {
-	v := reflect.ValueOf(proxy)
-	f := v.Elem().Field(int(m.Opcode) + 1) // +1 because of BaseProxy
-	t := f.Type().Elem()
-	ev := reflect.New(t)
-	el := ev.Elem()
-	for i := 0; i < el.NumField(); i++ {
-		ef := el.Field(i)
-		switch ef.Kind() {
-		case reflect.Int32:
-			ef.SetInt(int64(m.Int32()))
-		case reflect.Uint32:
-			ef.SetUint(uint64(m.Uint32()))
-		case reflect.Float32:
-			ef.SetFloat(float64(m.Float32()))
-		case reflect.String:
-			ef.SetString(m.String())
-		case reflect.Slice:
-			ef.Set(reflect.ValueOf(m.Array()))
-		case reflect.Uintptr:
-			ef.SetUint(m.FD())
-		case reflect.Ptr:
-			ef.Set(reflect.ValueOf(m.Proxy(proxy.Connection())).Elem().Addr())
-		case reflect.Interface: // special for DisplayErrorEvent because it has Proxy field
-			ef.Set(v)
-		default:
-			log.Panicf("Not handled field type: Proxy:%#v Field:%#v ", v, el)
-		}
-	}
-	f.Send(el)
-}
-
 func (context *Connection) run() {
 	context.conn.SetReadDeadline(time.Time{})
 loop:
 	for {
 		select {
 		case <-context.dispatchChan:
-			msg, err := ReadWaylandMessage(context.conn)
+			ev, err := ReadWaylandMessage(context.conn)
 			if err != nil {
+				log.Printf("ReadWaylandMessage Err:%s", err)
 				continue
 			}
 
-			proxy := context.lookupProxy(msg.Id)
+			proxy := context.lookupProxy(ev.pid)
 			if proxy != nil {
-				dispatchEvent(proxy, msg)
+				if dispatcher, ok := proxy.(EventDispatcher); ok {
+					dispatcher.Dispatch(ev)
+				} else {
+					log.Println("Not Dispatched")
+				}
+			} else {
+				log.Println("Proxy NULL")
 			}
 		case <-context.exitChan:
 			break loop

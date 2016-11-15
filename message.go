@@ -18,9 +18,8 @@ type Message struct {
 	control_msgs []syscall.SocketControlMessage
 }
 
-func ReadWaylandMessage(conn *net.UnixConn) (*Message, error) {
+func ReadWaylandMessage(conn *net.UnixConn) (*Event, error) {
 	var buf [8]byte
-	msg := Message{}
 	control := make([]byte, 24)
 
 	n, oobn, _, _, err := conn.ReadMsgUnix(buf[:], control)
@@ -30,33 +29,36 @@ func ReadWaylandMessage(conn *net.UnixConn) (*Message, error) {
 	if n != 8 {
 		return nil, errors.New("Unable to read message header.")
 	}
+
+	ev := new(Event)
+
 	if oobn > 0 {
 		if oobn > len(control) {
 			panic("Unsufficient control msg buffer")
 		}
-		msg.control_msgs, err = syscall.ParseSocketControlMessage(control)
+		scms, err := syscall.ParseSocketControlMessage(control)
 		if err != nil {
 			log.Panicf("Control message parse error: %s", err)
 		}
+		ev.scms = scms
 	}
 
-	msg.Id = ProxyId(order.Uint32(buf[0:4]))
-	msg.Opcode = uint32(order.Uint16(buf[4:6]))
-	msg.size = uint32(order.Uint16(buf[6:8]))
+	ev.pid = ProxyId(order.Uint32(buf[0:4]))
+	ev.opcode = uint32(order.Uint16(buf[4:6]))
+	size := uint32(order.Uint16(buf[6:8]))
 
 	// subtract 8 bytes from header
-	data := make([]byte, msg.size-8)
+	data := make([]byte, size-8)
 
 	n, err = conn.Read(data)
 	if err != nil {
 		return nil, err
 	}
-	if n != int(msg.size)-8 {
+	if n != int(size)-8 {
 		return nil, errors.New("Invalid message size.")
 	}
-	msg.data = bytes.NewBuffer(data)
-
-	return &msg, nil
+	ev.data = data //bytes.NewBuffer(data)
+	return ev, nil
 }
 
 func (m *Message) Write(arg interface{}) error {
@@ -96,89 +98,6 @@ func (m *Message) Write(arg interface{}) error {
 	default:
 		panic("Invalid Wayland request parameter type.")
 	}
-}
-
-func (m *Message) Proxy(c *Connection) Proxy {
-	buf := m.data.Next(4)
-	if len(buf) != 4 {
-		panic("Unable to read object id")
-	}
-	return c.lookupProxy(ProxyId(order.Uint32(buf)))
-}
-
-// normally uintptr but always convert to uint64
-func (m *Message) FD() uint64 {
-	if m.control_msgs == nil {
-		return 0
-	}
-	fds, err := syscall.ParseUnixRights(&m.control_msgs[0])
-	if err != nil {
-		panic("Unable to parse unix rights")
-	}
-	m.control_msgs = append(m.control_msgs[0:], m.control_msgs[1:]...)
-	if len(fds) != 1 {
-		panic("Expected 1 file descriptor, got more")
-	}
-	return uint64(fds[0])
-}
-
-func (m *Message) String() string {
-	buf := m.data.Next(4)
-	if len(buf) != 4 {
-		panic("Unable to read string length")
-	}
-	l := int(order.Uint32(buf))
-	buf = m.data.Next(l)
-	if len(buf) != l {
-		panic("Unable to read string")
-	}
-	ret := string(bytes.TrimRight(buf, "\x00"))
-	//padding to 32 bit boundary
-	if (l & 0x3) != 0 {
-		m.data.Next(4 - (l & 0x3))
-	}
-	return ret
-}
-
-func (m *Message) Int32() int32 {
-	buf := m.data.Next(4)
-	if len(buf) != 4 {
-		panic("Unable to read int")
-	}
-	return int32(order.Uint32(buf))
-}
-
-func (m *Message) Uint32() uint32 {
-	buf := m.data.Next(4)
-	if len(buf) != 4 {
-		panic("Unable to read unsigned int")
-	}
-	return order.Uint32(buf)
-}
-
-func (m *Message) Float32() float32 {
-	buf := m.data.Next(4)
-	if len(buf) != 4 {
-		panic("Unable to read fixed")
-	}
-	return float32(fixedToFloat64(int32(order.Uint32(buf))))
-}
-
-func (m *Message) Array() []int32 {
-	buf := m.data.Next(4)
-	if len(buf) != 4 {
-		panic("Unable to array len")
-	}
-	l := order.Uint32(buf)
-	arr := make([]int32, l/4)
-	for i := range arr {
-		buf = m.data.Next(4)
-		if len(buf) != 4 {
-			panic("Unable to array element")
-		}
-		arr[i] = int32(order.Uint32(buf))
-	}
-	return arr
 }
 
 func NewRequest(p Proxy, opcode uint32) *Message {

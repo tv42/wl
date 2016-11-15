@@ -2,6 +2,14 @@ package wl
 
 type ProxyId uint32
 
+type EventDispatcher interface {
+	Dispatch(*Event)
+}
+
+type Disposer interface {
+	Dispose()
+}
+
 type Proxy interface {
 	Connection() *Connection
 	SetConnection(c *Connection)
