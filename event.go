@@ -9,7 +9,6 @@ type Event struct {
 	pid     ProxyId
 	opcode  uint32
 	data    *bytes.Buffer
-	control *bytes.Buffer
 	scms    []syscall.SocketControlMessage
 }
 
