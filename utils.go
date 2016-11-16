@@ -2,21 +2,30 @@ package wl
 
 import (
 	"encoding/binary"
-	"io/ioutil"
 	"math"
-	"os"
 	"sync"
 	"unsafe"
 )
 
+type BytePool struct {
+	sync.Pool
+}
+
 var (
 	order    binary.ByteOrder
-	bytePool = sync.Pool{
-		New: func() interface{} {
-			return make([]byte, 64)
+	bytePool = &BytePool{
+		sync.Pool{
+			New: func() interface{} {
+				return make([]byte, 64) // increase when panic: runtime error: slice bounds out of range
+			},
 		},
 	}
 )
+
+func (bp *BytePool) Take(n int) []byte {
+	buf := bp.Get().([]byte)
+	return buf[:n]
+}
 
 func init() {
 	var x uint32 = 0x01020304
@@ -25,22 +34,6 @@ func init() {
 	} else {
 		order = binary.LittleEndian
 	}
-}
-
-func CreateAnonymousFile(size int64) (*os.File, error) {
-	dir := os.Getenv("XDG_RUNTIME_DIR")
-	if dir == "" {
-		panic("XDG_RUNTIME_DIR not defined.")
-	}
-	file, err := ioutil.TempFile(dir, "wayland-shared")
-	if err != nil {
-		return nil, err
-	}
-	err = file.Truncate(size)
-	if err != nil {
-		return nil, err
-	}
-	return file, nil
 }
 
 func fixedToFloat64(fixed int32) float64 {

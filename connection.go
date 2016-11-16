@@ -91,15 +91,13 @@ func (context *Connection) SendRequest(proxy Proxy, opcode uint32, args ...inter
 	if context.conn == nil {
 		return errors.New("No wayland connection established for Proxy object.")
 	}
-	msg := NewRequest(proxy, opcode)
+	req := NewRequest(proxy, opcode)
 
 	for _, arg := range args {
-		if err = msg.Write(arg); err != nil {
-			return err
-		}
+		req.Write(arg)
 	}
 
-	return SendMessage(context.conn, msg)
+	return SendMessage(context.conn, req)
 }
 
 func (context *Connection) run() {
@@ -110,7 +108,6 @@ loop:
 		case <-context.dispatchChan:
 			ev, err := ReadMessage(context.conn)
 			if err != nil {
-				//log.Printf("ReadWaylandMessage Err:%s", err)
 				//read unix @->/run/user/1000/wayland-0: use of closed network connection
 				continue
 			}
