@@ -10,7 +10,7 @@ type Event struct {
 	opcode uint32
 	data   []byte
 	scms   []syscall.SocketControlMessage
-	off	int
+	off    int
 }
 
 func (ev *Event) FD() uintptr {
@@ -52,7 +52,6 @@ func (ev *Event) String() string {
 	return ret
 }
 
-
 func (ev *Event) Int32() int32 {
 	return int32(ev.Uint32())
 }
@@ -71,7 +70,7 @@ func (ev *Event) Array() []int32 {
 }
 
 func (ev *Event) next(n int) []byte {
-	ret := ev.data[ev.off:ev.off + n]
+	ret := ev.data[ev.off : ev.off+n]
 	ev.off += n
 	return ret
 }

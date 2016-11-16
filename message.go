@@ -19,7 +19,10 @@ type Message struct {
 
 func ReadMessage(conn *net.UnixConn) (*Event, error) {
 	var buf [8]byte
-	control := make([]byte, 24)
+	//	control := make([]byte, 24)
+
+	cb := bytePool.Get().([]byte)
+	control := cb[:24]
 
 	n, oobn, _, _, err := conn.ReadMsgUnix(buf[:], control)
 	if err != nil {
@@ -47,8 +50,10 @@ func ReadMessage(conn *net.UnixConn) (*Event, error) {
 	size := uint32(order.Uint16(buf[6:8]))
 
 	// subtract 8 bytes from header
-	data := make([]byte, size-8)
-
+	//data := make([]byte, size-8)
+	db := bytePool.Get().([]byte)
+	log.Printf("data buf len: %d , needed %d ", len(db), (size - 8))
+	data := db[:size-8]
 	n, err = conn.Read(data)
 	if err != nil {
 		return nil, err
@@ -57,6 +62,8 @@ func ReadMessage(conn *net.UnixConn) (*Event, error) {
 		return nil, errors.New("Invalid message size.")
 	}
 	ev.data = data
+
+	bytePool.Put(cb)
 	return ev, nil
 }
 

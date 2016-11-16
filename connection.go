@@ -122,6 +122,7 @@ loop:
 				} else {
 					log.Println("Not Dispatched")
 				}
+				bytePool.Put(ev.data)
 			} else {
 				log.Println("Proxy NULL")
 			}

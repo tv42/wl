@@ -5,10 +5,18 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"sync"
 	"unsafe"
 )
 
-var order binary.ByteOrder
+var (
+	order    binary.ByteOrder
+	bytePool = sync.Pool{
+		New: func() interface{} {
+			return make([]byte, 64)
+		},
+	}
+)
 
 func init() {
 	var x uint32 = 0x01020304
