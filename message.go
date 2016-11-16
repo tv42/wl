@@ -110,6 +110,7 @@ func NewRequest(p Proxy, opcode uint32) *Message {
 	return &msg
 }
 
+//var sended int
 func SendWaylandMessage(conn *net.UnixConn, m *Message) error {
 	header := &bytes.Buffer{}
 	// calculate message total size
@@ -124,5 +125,7 @@ func SendWaylandMessage(conn *net.UnixConn, m *Message) error {
 	if c != m.control.Len() || d != (header.Len()+m.data.Len()) {
 		panic("WriteMsgUnix failed.")
 	}
+	//	sended++
+	//	log.Printf("%d sended",sended)
 	return err
 }

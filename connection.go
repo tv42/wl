@@ -102,6 +102,7 @@ func (context *Connection) SendRequest(proxy Proxy, opcode uint32, args ...inter
 	return SendWaylandMessage(context.conn, msg)
 }
 
+//var dispatched int
 func (context *Connection) run() {
 	context.conn.SetReadDeadline(time.Time{})
 loop:
@@ -110,7 +111,8 @@ loop:
 		case <-context.dispatchChan:
 			ev, err := ReadWaylandMessage(context.conn)
 			if err != nil {
-				log.Printf("ReadWaylandMessage Err:%s", err)
+				//log.Printf("ReadWaylandMessage Err:%s", err)
+				//read unix @->/run/user/1000/wayland-0: use of closed network connection
 				continue
 			}
 
@@ -118,6 +120,8 @@ loop:
 			if proxy != nil {
 				if dispatcher, ok := proxy.(EventDispatcher); ok {
 					dispatcher.Dispatch(ev)
+					//					dispatched++
+					//				log.Printf("%d dispatched",dispatched)
 				} else {
 					log.Println("Not Dispatched")
 				}

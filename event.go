@@ -6,18 +6,14 @@ import (
 )
 
 type Event struct {
-	pid     ProxyId
-	opcode  uint32
-	data    *bytes.Buffer
-	scms    []syscall.SocketControlMessage
+	pid    ProxyId
+	opcode uint32
+	data   *bytes.Buffer
+	scms   []syscall.SocketControlMessage
 }
 
 func (e *Event) Proxy(c *Connection) Proxy {
-	buf := e.data.Next(4)
-	if len(buf) != 4 {
-		panic("Unable to read object id")
-	}
-	return c.lookupProxy(ProxyId(order.Uint32(buf)))
+	return c.lookupProxy(ProxyId(e.Uint32()))
 }
 
 func (e *Event) FD() uintptr {
@@ -36,12 +32,8 @@ func (e *Event) FD() uintptr {
 }
 
 func (e *Event) String() string {
-	buf := e.data.Next(4)
-	if len(buf) != 4 {
-		panic("Unable to read string length")
-	}
-	l := int(order.Uint32(buf))
-	buf = e.data.Next(l)
+	l := int(e.Uint32())
+	buf := e.data.Next(l)
 	if len(buf) != l {
 		panic("Unable to read string")
 	}
@@ -54,11 +46,7 @@ func (e *Event) String() string {
 }
 
 func (e *Event) Int32() int32 {
-	buf := e.data.Next(4)
-	if len(buf) != 4 {
-		panic("Unable to read int")
-	}
-	return int32(order.Uint32(buf))
+	return int32(e.Uint32())
 }
 
 func (e *Event) Uint32() uint32 {
@@ -70,26 +58,14 @@ func (e *Event) Uint32() uint32 {
 }
 
 func (e *Event) Float32() float32 {
-	buf := e.data.Next(4)
-	if len(buf) != 4 {
-		panic("Unable to read fixed")
-	}
-	return float32(fixedToFloat64(int32(order.Uint32(buf))))
+	return float32(fixedToFloat64(e.Int32()))
 }
 
 func (e *Event) Array() []int32 {
-	buf := e.data.Next(4)
-	if len(buf) != 4 {
-		panic("Unable to array len")
-	}
-	l := order.Uint32(buf)
+	l := e.Uint32()
 	arr := make([]int32, l/4)
 	for i := range arr {
-		buf = e.data.Next(4)
-		if len(buf) != 4 {
-			panic("Unable to array element")
-		}
-		arr[i] = int32(order.Uint32(buf))
+		arr[i] = e.Int32()
 	}
 	return arr
 }
