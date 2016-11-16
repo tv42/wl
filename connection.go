@@ -99,7 +99,7 @@ func (context *Connection) SendRequest(proxy Proxy, opcode uint32, args ...inter
 		}
 	}
 
-	return SendWaylandMessage(context.conn, msg)
+	return SendMessage(context.conn, msg)
 }
 
 func (context *Connection) run() {
@@ -108,7 +108,7 @@ loop:
 	for {
 		select {
 		case <-context.dispatchChan:
-			ev, err := ReadWaylandMessage(context.conn)
+			ev, err := ReadMessage(context.conn)
 			if err != nil {
 				//log.Printf("ReadWaylandMessage Err:%s", err)
 				//read unix @->/run/user/1000/wayland-0: use of closed network connection

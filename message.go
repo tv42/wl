@@ -17,7 +17,7 @@ type Message struct {
 	control_msgs []syscall.SocketControlMessage
 }
 
-func ReadWaylandMessage(conn *net.UnixConn) (*Event, error) {
+func ReadMessage(conn *net.UnixConn) (*Event, error) {
 	var buf [8]byte
 	control := make([]byte, 24)
 
@@ -109,7 +109,7 @@ func NewRequest(p Proxy, opcode uint32) *Message {
 	return &msg
 }
 
-func SendWaylandMessage(conn *net.UnixConn, m *Message) error {
+func SendMessage(conn *net.UnixConn, m *Message) error {
 	header := &bytes.Buffer{}
 	// calculate message total size
 	size := uint32(m.data.Len() + 8)
