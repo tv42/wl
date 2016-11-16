@@ -12,7 +12,6 @@ import (
 type Message struct {
 	Id           ProxyId
 	Opcode       uint32
-	size         uint32
 	data         *bytes.Buffer
 	control      *bytes.Buffer
 	control_msgs []syscall.SocketControlMessage
@@ -57,7 +56,7 @@ func ReadWaylandMessage(conn *net.UnixConn) (*Event, error) {
 	if n != int(size)-8 {
 		return nil, errors.New("Invalid message size.")
 	}
-	ev.data = bytes.NewBuffer(data)
+	ev.data = data
 	return ev, nil
 }
 
@@ -110,13 +109,12 @@ func NewRequest(p Proxy, opcode uint32) *Message {
 	return &msg
 }
 
-//var sended int
 func SendWaylandMessage(conn *net.UnixConn, m *Message) error {
 	header := &bytes.Buffer{}
 	// calculate message total size
-	m.size = uint32(m.data.Len() + 8)
+	size := uint32(m.data.Len() + 8)
 	binary.Write(header, order, uint32(m.Id))
-	binary.Write(header, order, m.size<<16|m.Opcode&0x0000ffff)
+	binary.Write(header, order, size<<16|m.Opcode&0x0000ffff)
 
 	d, c, err := conn.WriteMsgUnix(append(header.Bytes(), m.data.Bytes()...), m.control.Bytes(), nil)
 	if err != nil {
@@ -125,7 +123,5 @@ func SendWaylandMessage(conn *net.UnixConn, m *Message) error {
 	if c != m.control.Len() || d != (header.Len()+m.data.Len()) {
 		panic("WriteMsgUnix failed.")
 	}
-	//	sended++
-	//	log.Printf("%d sended",sended)
 	return err
 }

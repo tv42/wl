@@ -102,7 +102,6 @@ func (context *Connection) SendRequest(proxy Proxy, opcode uint32, args ...inter
 	return SendWaylandMessage(context.conn, msg)
 }
 
-//var dispatched int
 func (context *Connection) run() {
 	context.conn.SetReadDeadline(time.Time{})
 loop:
@@ -120,8 +119,6 @@ loop:
 			if proxy != nil {
 				if dispatcher, ok := proxy.(EventDispatcher); ok {
 					dispatcher.Dispatch(ev)
-					//					dispatched++
-					//				log.Printf("%d dispatched",dispatched)
 				} else {
 					log.Println("Not Dispatched")
 				}
