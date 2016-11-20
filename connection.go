@@ -14,12 +14,12 @@ func init() {
 }
 
 type Connection struct {
-	mu        sync.RWMutex
-	conn      *net.UnixConn
-	currentId ProxyId
-	objects   map[ProxyId]Proxy
+	mu           sync.RWMutex
+	conn         *net.UnixConn
+	currentId    ProxyId
+	objects      map[ProxyId]Proxy
 	dispatchChan chan bool
-	exitChan chan bool
+	exitChan     chan bool
 }
 
 func (context *Connection) Register(proxy Proxy) {
@@ -81,7 +81,7 @@ func Connect(addr string) (ret *Display, err error) {
 	c.conn.SetReadDeadline(time.Time{})
 	//dispatch events in separate gorutine
 	go c.run()
-	return NewDisplay(c) , nil
+	return NewDisplay(c), nil
 }
 
 func (c *Connection) run() {

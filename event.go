@@ -14,25 +14,25 @@ type Event struct {
 	off    int
 }
 
-func (c *Connection) readEvent() (*Event , error) {
+func (c *Connection) readEvent() (*Event, error) {
 	buf := bytePool.Take(8)
 	control := bytePool.Take(24)
 
 	n, oobn, _, _, err := c.conn.ReadMsgUnix(buf[:], control)
 	if err != nil {
-		return nil , err
+		return nil, err
 	}
 	if n != 8 {
-		return nil , fmt.Errorf("Unable to read message header.")
+		return nil, fmt.Errorf("Unable to read message header.")
 	}
 	ev := new(Event)
 	if oobn > 0 {
 		if oobn > len(control) {
-			return nil , fmt.Errorf("Unsufficient control msg buffer")
+			return nil, fmt.Errorf("Unsufficient control msg buffer")
 		}
 		scms, err := syscall.ParseSocketControlMessage(control)
 		if err != nil {
-			return nil , fmt.Errorf("Control message parse error: %s", err)
+			return nil, fmt.Errorf("Control message parse error: %s", err)
 		}
 		ev.scms = scms
 	}
@@ -45,17 +45,17 @@ func (c *Connection) readEvent() (*Event , error) {
 	data := bytePool.Take(int(size) - 8)
 	n, err = c.conn.Read(data)
 	if err != nil {
-		return nil , err
+		return nil, err
 	}
 	if n != int(size)-8 {
-		return nil , fmt.Errorf("Invalid message size.")
+		return nil, fmt.Errorf("Invalid message size.")
 	}
 	ev.data = data
 
 	bytePool.Give(buf)
 	bytePool.Give(control)
 
-	return ev , nil
+	return ev, nil
 }
 
 func (ev *Event) FD() uintptr {

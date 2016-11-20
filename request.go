@@ -98,7 +98,7 @@ func SendMessage(conn *net.UnixConn, r *Request) error {
 	// calculate message total size
 	size := uint32(len(r.data) + 8)
 	//buf := bytePool.Take(4)
-	buf := make([]byte,4)
+	buf := make([]byte, 4)
 	order.PutUint32(buf, uint32(r.pid))
 	header = append(header, buf...)
 	order.PutUint32(buf, uint32(size<<16|r.opcode&0x0000ffff))
@@ -114,8 +114,8 @@ func SendMessage(conn *net.UnixConn, r *Request) error {
 		return errors.New("WriteMsgUnix failed")
 	}
 	/*
-	bytePool.Give(buf)
-	bytePool.Give(r.data)
+		bytePool.Give(buf)
+		bytePool.Give(r.data)
 	*/
 	return nil
 }
