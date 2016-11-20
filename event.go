@@ -2,6 +2,7 @@ package wl
 
 import (
 	"bytes"
+	"fmt"
 	"syscall"
 )
 
@@ -11,6 +12,50 @@ type Event struct {
 	data   []byte
 	scms   []syscall.SocketControlMessage
 	off    int
+}
+
+func (c *Connection) readEvent() (*Event , error) {
+	buf := bytePool.Take(8)
+	control := bytePool.Take(24)
+
+	n, oobn, _, _, err := c.conn.ReadMsgUnix(buf[:], control)
+	if err != nil {
+		return nil , err
+	}
+	if n != 8 {
+		return nil , fmt.Errorf("Unable to read message header.")
+	}
+	ev := new(Event)
+	if oobn > 0 {
+		if oobn > len(control) {
+			return nil , fmt.Errorf("Unsufficient control msg buffer")
+		}
+		scms, err := syscall.ParseSocketControlMessage(control)
+		if err != nil {
+			return nil , fmt.Errorf("Control message parse error: %s", err)
+		}
+		ev.scms = scms
+	}
+
+	ev.pid = ProxyId(order.Uint32(buf[0:4]))
+	ev.opcode = uint32(order.Uint16(buf[4:6]))
+	size := uint32(order.Uint16(buf[6:8]))
+
+	// subtract 8 bytes from header
+	data := bytePool.Take(int(size) - 8)
+	n, err = c.conn.Read(data)
+	if err != nil {
+		return nil , err
+	}
+	if n != int(size)-8 {
+		return nil , fmt.Errorf("Invalid message size.")
+	}
+	ev.data = data
+
+	bytePool.Give(buf)
+	bytePool.Give(control)
+
+	return ev , nil
 }
 
 func (ev *Event) FD() uintptr {

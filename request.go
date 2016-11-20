@@ -2,7 +2,6 @@ package wl
 
 import (
 	"errors"
-	"log"
 	"net"
 	"syscall"
 )
@@ -14,45 +13,14 @@ type Request struct {
 	oob    []byte
 }
 
-func ReadMessage(conn *net.UnixConn) (*Event, error) {
-	buf := bytePool.Take(8)
-	control := bytePool.Take(24)
-	n, oobn, _, _, err := conn.ReadMsgUnix(buf[:], control)
-	if err != nil {
-		return nil, err
-	}
-	if n != 8 {
-		return nil, errors.New("Unable to read message header.")
-	}
-	ev := new(Event)
-	if oobn > 0 {
-		if oobn > len(control) {
-			panic("Unsufficient control msg buffer")
-		}
-		scms, err := syscall.ParseSocketControlMessage(control)
-		if err != nil {
-			log.Panicf("Control message parse error: %s", err)
-		}
-		ev.scms = scms
+func (context *Connection) SendRequest(proxy Proxy, opcode uint32, args ...interface{}) (err error) {
+	req := NewRequest(proxy, opcode)
+
+	for _, arg := range args {
+		req.Write(arg)
 	}
 
-	ev.pid = ProxyId(order.Uint32(buf[0:4]))
-	ev.opcode = uint32(order.Uint16(buf[4:6]))
-	size := uint32(order.Uint16(buf[6:8]))
-
-	// subtract 8 bytes from header
-	data := bytePool.Take(int(size) - 8)
-	n, err = conn.Read(data)
-	if err != nil {
-		return nil, err
-	}
-	if n != int(size)-8 {
-		return nil, errors.New("Invalid message size.")
-	}
-	ev.data = data
-	bytePool.Put(control)
-	bytePool.Put(buf)
-	return ev, nil
+	return SendMessage(context.conn, req)
 }
 
 func (r *Request) PutUint32(u uint32) {
@@ -129,7 +97,8 @@ func SendMessage(conn *net.UnixConn, r *Request) error {
 	var header []byte
 	// calculate message total size
 	size := uint32(len(r.data) + 8)
-	buf := bytePool.Take(4)
+	//buf := bytePool.Take(4)
+	buf := make([]byte,4)
 	order.PutUint32(buf, uint32(r.pid))
 	header = append(header, buf...)
 	order.PutUint32(buf, uint32(size<<16|r.opcode&0x0000ffff))
@@ -137,12 +106,16 @@ func SendMessage(conn *net.UnixConn, r *Request) error {
 
 	d, c, err := conn.WriteMsgUnix(append(header, r.data...), r.oob, nil)
 	if err != nil {
-		panic(err)
+		//panic(err)
+		return err
 	}
 	if c != len(r.oob) || d != (len(header)+len(r.data)) {
-		panic("WriteMsgUnix failed.")
+		//panic("WriteMsgUnix failed.")
+		return errors.New("WriteMsgUnix failed")
 	}
-
-	bytePool.Put(buf)
+	/*
+	bytePool.Give(buf)
+	bytePool.Give(r.data)
+	*/
 	return nil
 }

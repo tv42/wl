@@ -14,12 +14,12 @@ func init() {
 }
 
 type Connection struct {
-	mu           sync.RWMutex
-	conn         *net.UnixConn
-	currentId    ProxyId
-	objects      map[ProxyId]Proxy
+	mu        sync.RWMutex
+	conn      *net.UnixConn
+	currentId ProxyId
+	objects   map[ProxyId]Proxy
 	dispatchChan chan bool
-	exitChan     chan bool
+	exitChan chan bool
 }
 
 func (context *Connection) Register(proxy Proxy) {
@@ -47,20 +47,17 @@ func (context *Connection) Unregister(proxy Proxy) {
 	delete(context.objects, proxy.Id())
 }
 
-func (context *Connection) Close() error {
-	if context.conn == nil {
-		return errors.New("Wayland connection not established.")
-	}
-	context.conn.Close()
-	context.exitChan <- true
-	return nil
+func (c *Connection) Close() {
+	c.conn.Close()
+	c.exitChan <- true
+	close(c.dispatchChan)
 }
 
-func (context *Connection) Dispatch() chan<- bool {
-	return context.dispatchChan
+func (c *Connection) Dispatch() chan<- bool {
+	return c.dispatchChan
 }
 
-func ConnectDisplay(addr string) (ret *Display, err error) {
+func Connect(addr string) (ret *Display, err error) {
 	runtime_dir := os.Getenv("XDG_RUNTIME_DIR")
 	if runtime_dir == "" {
 		return nil, errors.New("XDG_RUNTIME_DIR not set in the environment.")
@@ -72,58 +69,44 @@ func ConnectDisplay(addr string) (ret *Display, err error) {
 		addr = "wayland-0"
 	}
 	addr = runtime_dir + "/" + addr
-	ctx := &Connection{}
-	ctx.objects = make(map[ProxyId]Proxy)
-	ctx.currentId = 0
-	ctx.dispatchChan = make(chan bool)
-	ctx.exitChan = make(chan bool)
-	ctx.conn, err = net.DialUnix("unix", nil, &net.UnixAddr{Name: addr, Net: "unix"})
+	c := new(Connection)
+	c.objects = make(map[ProxyId]Proxy)
+	c.currentId = 0
+	c.dispatchChan = make(chan bool)
+	c.exitChan = make(chan bool)
+	c.conn, err = net.DialUnix("unix", nil, &net.UnixAddr{Name: addr, Net: "unix"})
 	if err != nil {
 		return nil, err
 	}
-	ret = NewDisplay(ctx)
-	// dispatch events in separate gorutine
-	go ctx.run()
-	return ret, nil
+	c.conn.SetReadDeadline(time.Time{})
+	//dispatch events in separate gorutine
+	go c.run()
+	return NewDisplay(c) , nil
 }
 
-func (context *Connection) SendRequest(proxy Proxy, opcode uint32, args ...interface{}) (err error) {
-	if context.conn == nil {
-		return errors.New("No wayland connection established for Proxy object.")
-	}
-	req := NewRequest(proxy, opcode)
-
-	for _, arg := range args {
-		req.Write(arg)
-	}
-
-	return SendMessage(context.conn, req)
-}
-
-func (context *Connection) run() {
-	context.conn.SetReadDeadline(time.Time{})
+func (c *Connection) run() {
 loop:
 	for {
 		select {
-		case <-context.dispatchChan:
-			ev, err := ReadMessage(context.conn)
+		case <-c.dispatchChan:
+			ev, err := c.readEvent()
 			if err != nil {
-				//read unix @->/run/user/1000/wayland-0: use of closed network connection
 				continue
 			}
 
-			proxy := context.lookupProxy(ev.pid)
+			proxy := c.lookupProxy(ev.pid)
 			if proxy != nil {
 				if dispatcher, ok := proxy.(EventDispatcher); ok {
 					dispatcher.Dispatch(ev)
+					bytePool.Give(ev.data)
 				} else {
-					log.Println("Not Dispatched")
+					log.Print("Not dispatched")
 				}
-				bytePool.Put(ev.data)
 			} else {
-				log.Println("Proxy NULL")
+				log.Print("Proxy NULL")
 			}
-		case <-context.exitChan:
+
+		case <-c.exitChan:
 			break loop
 		}
 	}

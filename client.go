@@ -932,15 +932,15 @@ func (p *DataDevice) Dispatch(event *Event) {
 	switch event.opcode {
 	case 0:
 		ev := new(DataDeviceDataOfferEvent)
-		ev.Id, _ = event.Proxy(p.Connection()).(*DataOffer)
+		ev.Id = event.Proxy(p.Connection()).(*DataOffer)
 		p.DataOfferChan <- ev
 	case 1:
 		ev := new(DataDeviceEnterEvent)
 		ev.Serial = event.Uint32()
-		ev.Surface, _ = event.Proxy(p.Connection()).(*Surface)
+		ev.Surface = event.Proxy(p.Connection()).(*Surface)
 		ev.X = event.Float32()
 		ev.Y = event.Float32()
-		ev.Id, _ = event.Proxy(p.Connection()).(*DataOffer)
+		ev.Id = event.Proxy(p.Connection()).(*DataOffer)
 		p.EnterChan <- ev
 	case 2:
 		ev := new(DataDeviceLeaveEvent)
@@ -956,7 +956,7 @@ func (p *DataDevice) Dispatch(event *Event) {
 		p.DropChan <- ev
 	case 5:
 		ev := new(DataDeviceSelectionEvent)
-		ev.Id, _ = event.Proxy(p.Connection()).(*DataOffer)
+		ev.Id = event.Proxy(p.Connection()).(*DataOffer)
 		p.SelectionChan <- ev
 	}
 }
@@ -1180,11 +1180,11 @@ func (p *Surface) Dispatch(event *Event) {
 	switch event.opcode {
 	case 0:
 		ev := new(SurfaceEnterEvent)
-		ev.Output, _ = event.Proxy(p.Connection()).(*Output)
+		ev.Output = event.Proxy(p.Connection()).(*Output)
 		p.EnterChan <- ev
 	case 1:
 		ev := new(SurfaceLeaveEvent)
-		ev.Output, _ = event.Proxy(p.Connection()).(*Output)
+		ev.Output = event.Proxy(p.Connection()).(*Output)
 		p.LeaveChan <- ev
 	}
 }
@@ -1454,14 +1454,14 @@ func (p *Pointer) Dispatch(event *Event) {
 	case 0:
 		ev := new(PointerEnterEvent)
 		ev.Serial = event.Uint32()
-		ev.Surface, _ = event.Proxy(p.Connection()).(*Surface)
+		ev.Surface = event.Proxy(p.Connection()).(*Surface)
 		ev.SurfaceX = event.Float32()
 		ev.SurfaceY = event.Float32()
 		p.EnterChan <- ev
 	case 1:
 		ev := new(PointerLeaveEvent)
 		ev.Serial = event.Uint32()
-		ev.Surface, _ = event.Proxy(p.Connection()).(*Surface)
+		ev.Surface = event.Proxy(p.Connection()).(*Surface)
 		p.LeaveChan <- ev
 	case 2:
 		ev := new(PointerMotionEvent)
@@ -1627,13 +1627,13 @@ func (p *Keyboard) Dispatch(event *Event) {
 	case 1:
 		ev := new(KeyboardEnterEvent)
 		ev.Serial = event.Uint32()
-		ev.Surface, _ = event.Proxy(p.Connection()).(*Surface)
+		ev.Surface = event.Proxy(p.Connection()).(*Surface)
 		ev.Keys = event.Array()
 		p.EnterChan <- ev
 	case 2:
 		ev := new(KeyboardLeaveEvent)
 		ev.Serial = event.Uint32()
-		ev.Surface, _ = event.Proxy(p.Connection()).(*Surface)
+		ev.Surface = event.Proxy(p.Connection()).(*Surface)
 		p.LeaveChan <- ev
 	case 3:
 		ev := new(KeyboardKeyEvent)
@@ -1758,7 +1758,7 @@ func (p *Touch) Dispatch(event *Event) {
 		ev := new(TouchDownEvent)
 		ev.Serial = event.Uint32()
 		ev.Time = event.Uint32()
-		ev.Surface, _ = event.Proxy(p.Connection()).(*Surface)
+		ev.Surface = event.Proxy(p.Connection()).(*Surface)
 		ev.Id = event.Int32()
 		ev.X = event.Float32()
 		ev.Y = event.Float32()
