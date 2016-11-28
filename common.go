@@ -2,12 +2,8 @@ package wl
 
 type ProxyId uint32
 
-type EventDispatcher interface {
+type Dispatcher interface {
 	Dispatch(*Event)
-}
-
-type Disposer interface {
-	Dispose()
 }
 
 type Proxy interface {

@@ -108,7 +108,7 @@ loop:
 
 			proxy := c.lookupProxy(ev.pid)
 			if proxy != nil {
-				if dispatcher, ok := proxy.(EventDispatcher); ok {
+				if dispatcher, ok := proxy.(Dispatcher); ok {
 					dispatcher.Dispatch(ev)
 					bytePool.Give(ev.data)
 				} else {
