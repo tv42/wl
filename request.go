@@ -24,7 +24,8 @@ func (context *Context) sendRequest(proxy Proxy, opcode uint32, args ...interfac
 }
 
 func (r *Request) PutUint32(u uint32) {
-	buf := make([]byte, 4)
+	//buf := make([]byte, 4)
+	buf := bytePool.Take(4)
 	order.PutUint32(buf, u)
 	r.data = append(r.data, buf...)
 }

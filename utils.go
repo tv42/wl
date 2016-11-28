@@ -16,7 +16,7 @@ var (
 	bytePool = &BytePool{
 		sync.Pool{
 			New: func() interface{} {
-				return make([]byte, 24)
+				return make([]byte, 16)
 			},
 		},
 	}
