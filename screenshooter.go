@@ -12,13 +12,13 @@ type WestonScreenshooter struct {
 type WestonScreenshooterDoneEvent struct {
 }
 
-func NewWestonScreenshooter(conn *Connection) *WestonScreenshooter {
+func NewWestonScreenshooter(conn *Context) *WestonScreenshooter {
 	ret := new(WestonScreenshooter)
 	ret.DoneChan = make(chan WestonScreenshooterDoneEvent)
-	conn.Register(ret)
+	conn.register(ret)
 	return ret
 }
 
 func (p *WestonScreenshooter) Shoot(output Output, buffer Buffer) error {
-	return p.Connection().SendRequest(p, _WESTON_SCREENSHOOTER_SHOOT, output, buffer)
+	return p.Context().sendRequest(p, _WESTON_SCREENSHOOTER_SHOOT, output, buffer)
 }

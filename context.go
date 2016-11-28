@@ -2,6 +2,7 @@ package wl
 
 import (
 	"errors"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -13,7 +14,7 @@ func init() {
 	log.SetFlags(0)
 }
 
-type Connection struct {
+type Context struct {
 	mu           sync.RWMutex
 	conn         *net.UnixConn
 	currentId    ProxyId
@@ -22,38 +23,39 @@ type Connection struct {
 	exitChan     chan bool
 }
 
-func (context *Connection) Register(proxy Proxy) {
-	context.mu.Lock()
-	defer context.mu.Unlock()
-	context.currentId += 1
-	proxy.SetId(context.currentId)
-	proxy.SetConnection(context)
-	context.objects[context.currentId] = proxy
+func (ctx *Context) register(proxy Proxy) {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+	ctx.currentId += 1
+	proxy.SetId(ctx.currentId)
+	proxy.SetContext(ctx)
+	ctx.objects[ctx.currentId] = proxy
 }
 
-func (context *Connection) lookupProxy(id ProxyId) Proxy {
-	context.mu.RLock()
-	proxy, ok := context.objects[id]
-	context.mu.RUnlock()
+func (ctx *Context) lookupProxy(id ProxyId) Proxy {
+	ctx.mu.RLock()
+	proxy, ok := ctx.objects[id]
+	ctx.mu.RUnlock()
 	if !ok {
 		return nil
 	}
 	return proxy
 }
 
-func (context *Connection) Unregister(proxy Proxy) {
-	context.mu.Lock()
-	defer context.mu.Unlock()
-	delete(context.objects, proxy.Id())
+func (ctx *Context) unregister(proxy Proxy) {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+	delete(ctx.objects, proxy.Id())
 }
 
-func (c *Connection) Close() {
+func (c *Context) Close() {
 	c.conn.Close()
 	c.exitChan <- true
 	close(c.dispatchChan)
+
 }
 
-func (c *Connection) Dispatch() chan<- bool {
+func (c *Context) Dispatch() chan<- bool {
 	return c.dispatchChan
 }
 
@@ -69,7 +71,7 @@ func Connect(addr string) (ret *Display, err error) {
 		addr = "wayland-0"
 	}
 	addr = runtime_dir + "/" + addr
-	c := new(Connection)
+	c := new(Context)
 	c.objects = make(map[ProxyId]Proxy)
 	c.currentId = 0
 	c.dispatchChan = make(chan bool)
@@ -84,14 +86,24 @@ func Connect(addr string) (ret *Display, err error) {
 	return NewDisplay(c), nil
 }
 
-func (c *Connection) run() {
+func (c *Context) run() {
 loop:
 	for {
 		select {
 		case <-c.dispatchChan:
 			ev, err := c.readEvent()
 			if err != nil {
-				continue
+				if err == io.EOF {
+					log.Print("EOF Error")
+					break loop
+				}
+
+				if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+					log.Print("Timeout Error")
+					continue
+				}
+
+				log.Fatal(err)
 			}
 
 			proxy := c.lookupProxy(ev.pid)

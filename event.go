@@ -14,9 +14,14 @@ type Event struct {
 	off    int
 }
 
-func (c *Connection) readEvent() (*Event, error) {
+func (c *Context) readEvent() (*Event, error) {
 	buf := bytePool.Take(8)
 	control := bytePool.Take(24)
+
+	/*
+		buf := make([]byte,8)
+		control := make([]byte,24)
+	*/
 
 	n, oobn, _, _, err := c.conn.ReadMsgUnix(buf[:], control)
 	if err != nil {
@@ -43,6 +48,7 @@ func (c *Connection) readEvent() (*Event, error) {
 
 	// subtract 8 bytes from header
 	data := bytePool.Take(int(size) - 8)
+	//data := make([]byte,int(size) - 8)
 	n, err = c.conn.Read(data)
 	if err != nil {
 		return nil, err
@@ -79,7 +85,7 @@ func (ev *Event) Uint32() uint32 {
 	return order.Uint32(buf)
 }
 
-func (ev *Event) Proxy(c *Connection) Proxy {
+func (ev *Event) Proxy(c *Context) Proxy {
 	return c.lookupProxy(ProxyId(ev.Uint32()))
 }
 

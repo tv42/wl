@@ -11,15 +11,15 @@ type Disposer interface {
 }
 
 type Proxy interface {
-	Connection() *Connection
-	SetConnection(c *Connection)
+	Context() *Context
+	SetContext(c *Context)
 	Id() ProxyId
 	SetId(id ProxyId)
 }
 
 type BaseProxy struct {
-	id   ProxyId
-	conn *Connection
+	id  ProxyId
+	ctx *Context
 }
 
 func (p *BaseProxy) Id() ProxyId {
@@ -30,10 +30,26 @@ func (p *BaseProxy) SetId(id ProxyId) {
 	p.id = id
 }
 
-func (p *BaseProxy) Connection() *Connection {
-	return p.conn
+func (p *BaseProxy) Context() *Context {
+	return p.ctx
 }
 
-func (p *BaseProxy) SetConnection(c *Connection) {
-	p.conn = c
+func (p *BaseProxy) SetContext(c *Context) {
+	p.ctx = c
+}
+
+type Handler interface {
+	Handle(ev interface{})
+}
+
+type eventHandler struct {
+	f func(interface{})
+}
+
+func HandlerFunc(f func(interface{})) Handler {
+	return &eventHandler{f}
+}
+
+func (h *eventHandler) Handle(ev interface{}) {
+	h.f(ev)
 }

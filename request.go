@@ -13,7 +13,7 @@ type Request struct {
 	oob    []byte
 }
 
-func (context *Connection) SendRequest(proxy Proxy, opcode uint32, args ...interface{}) (err error) {
+func (context *Context) sendRequest(proxy Proxy, opcode uint32, args ...interface{}) (err error) {
 	req := NewRequest(proxy, opcode)
 
 	for _, arg := range args {
@@ -97,7 +97,6 @@ func SendMessage(conn *net.UnixConn, r *Request) error {
 	var header []byte
 	// calculate message total size
 	size := uint32(len(r.data) + 8)
-	//buf := bytePool.Take(4)
 	buf := make([]byte, 4)
 	order.PutUint32(buf, uint32(r.pid))
 	header = append(header, buf...)
@@ -113,9 +112,7 @@ func SendMessage(conn *net.UnixConn, r *Request) error {
 		//panic("WriteMsgUnix failed.")
 		return errors.New("WriteMsgUnix failed")
 	}
-	/*
-		bytePool.Give(buf)
-		bytePool.Give(r.data)
-	*/
+	bytePool.Give(r.data)
+
 	return nil
 }
