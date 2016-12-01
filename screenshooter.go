@@ -19,6 +19,6 @@ func NewWestonScreenshooter(conn *Context) *WestonScreenshooter {
 	return ret
 }
 
-func (p *WestonScreenshooter) Shoot(output Output, buffer Buffer) error {
+func (p *WestonScreenshooter) Shoot(output *Output, buffer *Buffer) error {
 	return p.Context().sendRequest(p, _WESTON_SCREENSHOOTER_SHOOT, output, buffer)
 }
