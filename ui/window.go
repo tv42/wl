@@ -14,11 +14,13 @@ import (
 
 type Window struct {
 	width, height int32
+	display       *Display
 	surface       *wl.Surface
 	shSurface     *wl.ShellSurface
 	buffer        *wl.Buffer
 	data          []byte
 	image         *image.RGBA
+	title         string
 }
 
 func (d *Display) NewWindow(width, height int32) (*Window, error) {
@@ -28,6 +30,7 @@ func (d *Display) NewWindow(width, height int32) (*Window, error) {
 	w := new(Window)
 	w.width = width
 	w.height = height
+	w.display = d
 
 	w.surface, err = d.compositor.CreateSurface()
 	if err != nil {
@@ -69,35 +72,9 @@ func (d *Display) NewWindow(width, height int32) (*Window, error) {
 		Rect:   image.Rect(0, 0, int(width), int(height)),
 	}
 
+	d.registerWindow(w)
+
 	return w, nil
-}
-
-func (d *Display) newBuffer(width, height, stride int32) (*wl.Buffer, []byte, error) {
-	size := stride * height
-
-	file, err := TempFile(int64(size))
-	if err != nil {
-		return nil, nil, fmt.Errorf("TempFile failed: %s", err)
-	}
-	defer file.Close()
-
-	data, err := syscall.Mmap(int(file.Fd()), 0, int(size), syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
-	if err != nil {
-		return nil, nil, fmt.Errorf("syscall.Mmap failed: %s", err)
-	}
-
-	pool, err := d.shm.CreatePool(file.Fd(), size)
-	if err != nil {
-		return nil, nil, fmt.Errorf("Shm.CreatePool failed: %s", err)
-	}
-
-	buf, err := pool.CreateBuffer(0, width, height, stride, wl.ShmFormatArgb8888)
-	if err != nil {
-		return nil, nil, fmt.Errorf("Pool.CreateBuffer failed : %s", err)
-	}
-	defer pool.Destroy()
-
-	return buf, data, nil
 }
 
 func (w *Window) Draw(img image.Image) {
@@ -111,6 +88,7 @@ func (w *Window) Dispose() {
 	w.surface.Destroy()
 	w.buffer.Destroy()
 	syscall.Munmap(w.data)
+	w.display.unregisterWindow(w)
 }
 
 func (w *Window) Handle(e interface{}) {

@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 	"log"
+	"sync"
+	"syscall"
 )
 
 import (
@@ -10,6 +12,7 @@ import (
 )
 
 type Display struct {
+	mu                sync.RWMutex
 	display           *wl.Display
 	registry          *wl.Registry
 	compositor        *wl.Compositor
@@ -21,6 +24,7 @@ type Display struct {
 	pointer           *wl.Pointer
 	keyboard          *wl.Keyboard
 	touch             *wl.Touch
+	windows           []*Window
 }
 
 func Connect(addr string) (*Display, error) {
@@ -37,21 +41,26 @@ func Connect(addr string) (*Display, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println("Globals registered")
+	d.checkGlobalsRegistered()
+
 	err = d.registerInputs()
 	if err != nil {
 		return nil, err
 	}
+	d.checkInputsRegistered()
 
-	if d.keyboard == nil {
-		log.Fatal("Keyboard == NULL")
-	}
-
-	log.Println("Inputs registered")
 	return d, nil
 }
 
 func (d *Display) Disconnect() {
+	d.keyboard.Release()
+	d.pointer.Release()
+	if d.touch != nil {
+		d.touch.Release()
+	}
+
+	d.seat.Release()
+
 	d.display.Context().Close()
 }
 
@@ -61,14 +70,6 @@ func (d *Display) Dispatch() chan<- bool {
 
 func (d *Display) Context() *wl.Context {
 	return d.display.Context()
-}
-
-func (d *Display) Keyboard() *wl.Keyboard {
-	return d.keyboard
-}
-
-func (d *Display) Pointer() *wl.Pointer {
-	return d.pointer
 }
 
 func (d *Display) registerGlobals() error {
@@ -139,14 +140,9 @@ func (d *Display) registerInputs() error {
 		}
 	}
 	ch := wl.HandlerFunc(scf)
-	if d.seat == nil {
-		log.Fatal("seat == NİL")
-	}
-
 	d.seat.AddCapabilitiesHandler(ch)
 loop:
 	for {
-		//log.Print("in registerInputs loop")
 		select {
 		case ev := <-scc:
 			if (ev.Capabilities & wl.SeatCapabilityPointer) != 0 {
@@ -224,19 +220,6 @@ func (d *Display) registerInterface(registry *wl.Registry, ev wl.RegistryGlobalE
 			return fmt.Errorf("Unable to bind Subcompositor interface: %s", err)
 		}
 		d.subCompositor = ret
-		/*
-			case "text_cursor_position":
-				ret := wl.NewTextCursorPosition(d.Context())
-				err := registry.Bind(ev.Name, ev.Interface, ev.Version, ret)
-				if err != nil {
-					return fmt.Errorf("Unable to bind TextCursorPosition interface: %s", err)
-				}
-				d.wltextCursorPosition = ret
-		*/
-		/*
-			default:
-				log.Printf("%s interface is not registered", ev.Interface)
-		*/
 	}
 	return nil
 }
@@ -247,5 +230,101 @@ func (d *Display) Handle(e interface{}) {
 		log.Fatalf("Display Error Event: %d - %s - %d", ev.ObjectId.Id(), ev.Message, ev.Code)
 	default:
 		log.Print("unhandled event")
+	}
+}
+
+func (d *Display) newBuffer(width, height, stride int32) (*wl.Buffer, []byte, error) {
+	size := stride * height
+
+	file, err := TempFile(int64(size))
+	if err != nil {
+		return nil, nil, fmt.Errorf("TempFile failed: %s", err)
+	}
+	defer file.Close()
+
+	data, err := syscall.Mmap(int(file.Fd()), 0, int(size), syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
+	if err != nil {
+		return nil, nil, fmt.Errorf("syscall.Mmap failed: %s", err)
+	}
+
+	pool, err := d.shm.CreatePool(file.Fd(), size)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Shm.CreatePool failed: %s", err)
+	}
+
+	buf, err := pool.CreateBuffer(0, width, height, stride, wl.ShmFormatArgb8888)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Pool.CreateBuffer failed : %s", err)
+	}
+	defer pool.Destroy()
+
+	return buf, data, nil
+}
+
+func (d *Display) registerWindow(w *Window) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.windows = append(d.windows, w)
+}
+
+func (d *Display) unregisterWindow(w *Window) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	for i, _w := range d.windows {
+		if _w == w {
+			d.windows = append(d.windows[:i], d.windows[i+1:]...)
+			break
+		}
+	}
+}
+
+// TODO
+func (d *Display) FindWindow() *Window {
+	return nil
+}
+
+func (d *Display) checkGlobalsRegistered() {
+	if d.seat == nil {
+		log.Fatal("Seat is not registered")
+	}
+
+	if d.compositor == nil {
+		log.Fatal("Compositor is not registered")
+	}
+
+	if d.shm == nil {
+		log.Fatal("Shm is not registered")
+	}
+
+	if d.shell == nil {
+		log.Fatal("Shell is not registered")
+	}
+
+	if d.dataDeviceManager == nil {
+		log.Fatal("DataDeviceManager is not registered")
+	}
+}
+
+func (d *Display) Keyboard() *wl.Keyboard {
+	return d.keyboard
+}
+
+func (d *Display) Pointer() *wl.Pointer {
+	return d.pointer
+}
+
+func (d *Display) Touch() *wl.Touch {
+	return d.touch
+}
+
+func (d *Display) checkInputsRegistered() {
+	if d.keyboard == nil {
+		log.Fatal("Keyboard is not registered")
+	}
+
+	if d.pointer == nil {
+		log.Fatal("Pointer is not registered")
 	}
 }
