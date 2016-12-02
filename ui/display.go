@@ -34,21 +34,28 @@ func Connect(addr string) (*Display, error) {
 		return nil, fmt.Errorf("Connect to Wayland server failed %s", err)
 	}
 
+	d.display = display
 	display.AddErrorHandler(d)
 
-	d.display = display
 	err = d.registerGlobals()
 	if err != nil {
 		return nil, err
 	}
-	d.checkGlobalsRegistered()
+
+	err = d.checkGlobalsRegistered()
+	if err != nil {
+		return nil, err
+	}
 
 	err = d.registerInputs()
 	if err != nil {
 		return nil, err
 	}
-	d.checkInputsRegistered()
 
+	err = d.checkInputsRegistered()
+	if err != nil {
+		return nil, err
+	}
 	return d, nil
 }
 
@@ -60,7 +67,6 @@ func (d *Display) Disconnect() {
 	}
 
 	d.seat.Release()
-
 	d.display.Context().Close()
 }
 
@@ -74,47 +80,48 @@ func (d *Display) Context() *wl.Context {
 
 func (d *Display) registerGlobals() error {
 	registry, err := d.display.GetRegistry()
-	d.registry = registry
 	if err != nil {
 		return fmt.Errorf("Display.GetRegistry failed : %s", err)
 	}
+	d.registry = registry
+
 	callback, err := d.display.Sync()
 	if err != nil {
 		return fmt.Errorf("Display.Sync failed %s", err)
 	}
 
-	rgec := make(chan wl.RegistryGlobalEvent)
-	f := func(ev interface{}) {
-		if e, ok := ev.(wl.RegistryGlobalEvent); ok {
-			rgec <- e
+	rgeChan := make(chan wl.RegistryGlobalEvent)
+	rgeFunc := func(e interface{}) {
+		if ev, ok := e.(wl.RegistryGlobalEvent); ok {
+			rgeChan <- ev
 		}
 	}
-	evf := wl.HandlerFunc(f)
-	registry.AddGlobalHandler(evf)
+	rgeHandler := wl.HandlerFunc(rgeFunc)
+	registry.AddGlobalHandler(rgeHandler)
 
-	dc := make(chan wl.CallbackDoneEvent)
-	cdf := func(e interface{}) {
+	cdeChan := make(chan wl.CallbackDoneEvent)
+	cdeFunc := func(e interface{}) {
 		if ev, ok := e.(wl.CallbackDoneEvent); ok {
-			dc <- ev
+			cdeChan <- ev
 		}
 	}
-	dh := wl.HandlerFunc(cdf)
-	callback.AddDoneHandler(dh)
+	cdeHandler := wl.HandlerFunc(cdeFunc)
+	callback.AddDoneHandler(cdeHandler)
 loop:
 	for {
 		select {
-		case ev := <-rgec:
+		case ev := <-rgeChan:
 			if err := d.registerInterface(registry, ev); err != nil {
 				return err
 			}
 		case d.Dispatch() <- true:
-		case <-dc:
+		case <-cdeChan:
 			break loop
 		}
 	}
 
-	registry.RemoveGlobalHandler(evf)
-	callback.RemoveDoneHandler(dh)
+	registry.RemoveGlobalHandler(rgeHandler)
+	callback.RemoveDoneHandler(cdeHandler)
 	return nil
 }
 
@@ -124,27 +131,28 @@ func (d *Display) registerInputs() error {
 		return fmt.Errorf("Display.Sync failed %s", err)
 	}
 
-	dc := make(chan wl.CallbackDoneEvent)
-	cbd := func(e interface{}) {
+	cdeChan := make(chan wl.CallbackDoneEvent)
+	cdeFunc := func(e interface{}) {
 		if ev, ok := e.(wl.CallbackDoneEvent); ok {
-			dc <- ev
+			cdeChan <- ev
 		}
 	}
-	dh := wl.HandlerFunc(cbd)
-	callback.AddDoneHandler(dh)
+	cdeHandler := wl.HandlerFunc(cdeFunc)
+	callback.AddDoneHandler(cdeHandler)
 
-	scc := make(chan wl.SeatCapabilitiesEvent)
-	scf := func(e interface{}) {
+	sceChan := make(chan wl.SeatCapabilitiesEvent)
+	sceFunc := func(e interface{}) {
 		if ev, ok := e.(wl.SeatCapabilitiesEvent); ok {
-			scc <- ev
+			sceChan <- ev
 		}
 	}
-	ch := wl.HandlerFunc(scf)
-	d.seat.AddCapabilitiesHandler(ch)
+	sceHandler := wl.HandlerFunc(sceFunc)
+	d.seat.AddCapabilitiesHandler(sceHandler)
+
 loop:
 	for {
 		select {
-		case ev := <-scc:
+		case ev := <-sceChan:
 			if (ev.Capabilities & wl.SeatCapabilityPointer) != 0 {
 				pointer, err := d.seat.GetPointer()
 				if err != nil {
@@ -167,12 +175,14 @@ loop:
 				d.touch = touch
 			}
 		case d.Dispatch() <- true:
-		case <-dc:
+		case <-cdeChan:
 			break loop
 		}
 	}
-	d.seat.RemoveCapabilitiesHandler(ch)
-	callback.RemoveDoneHandler(dh)
+
+	d.seat.RemoveCapabilitiesHandler(sceHandler)
+	callback.RemoveDoneHandler(cdeHandler)
+
 	return nil
 }
 
@@ -285,26 +295,28 @@ func (d *Display) FindWindow() *Window {
 	return nil
 }
 
-func (d *Display) checkGlobalsRegistered() {
+func (d *Display) checkGlobalsRegistered() error {
 	if d.seat == nil {
-		log.Fatal("Seat is not registered")
+		return fmt.Errorf("Seat is not registered")
 	}
 
 	if d.compositor == nil {
-		log.Fatal("Compositor is not registered")
+		return fmt.Errorf("Compositor is not registered")
 	}
 
 	if d.shm == nil {
-		log.Fatal("Shm is not registered")
+		return fmt.Errorf("Shm is not registered")
 	}
 
 	if d.shell == nil {
-		log.Fatal("Shell is not registered")
+		return fmt.Errorf("Shell is not registered")
 	}
 
 	if d.dataDeviceManager == nil {
-		log.Fatal("DataDeviceManager is not registered")
+		return fmt.Errorf("DataDeviceManager is not registered")
 	}
+
+	return nil
 }
 
 func (d *Display) Keyboard() *wl.Keyboard {
@@ -319,12 +331,14 @@ func (d *Display) Touch() *wl.Touch {
 	return d.touch
 }
 
-func (d *Display) checkInputsRegistered() {
+func (d *Display) checkInputsRegistered() error {
 	if d.keyboard == nil {
-		log.Fatal("Keyboard is not registered")
+		return fmt.Errorf("Keyboard is not registered")
 	}
 
 	if d.pointer == nil {
-		log.Fatal("Pointer is not registered")
+		return fmt.Errorf("Pointer is not registered")
 	}
+
+	return nil
 }
