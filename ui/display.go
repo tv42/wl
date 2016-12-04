@@ -261,12 +261,12 @@ func (d *Display) newBuffer(width, height, stride int32) (*wl.Buffer, []byte, er
 	if err != nil {
 		return nil, nil, fmt.Errorf("Shm.CreatePool failed: %s", err)
 	}
+	defer pool.Destroy()
 
 	buf, err := pool.CreateBuffer(0, width, height, stride, wl.ShmFormatArgb8888)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Pool.CreateBuffer failed : %s", err)
 	}
-	defer pool.Destroy()
 
 	return buf, data, nil
 }

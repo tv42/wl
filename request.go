@@ -14,17 +14,39 @@ type Request struct {
 }
 
 func (context *Context) sendRequest(proxy Proxy, opcode uint32, args ...interface{}) (err error) {
-	req := NewRequest(proxy, opcode)
+	req := Request{}
+	req.pid = proxy.Id()
+	req.opcode = opcode
 
 	for _, arg := range args {
 		req.Write(arg)
 	}
 
-	return SendMessage(context.conn, req)
+	return writeRequest(context.conn, req)
+}
+
+func (r *Request) Write(arg interface{}) {
+	switch t := arg.(type) {
+	case Proxy:
+		r.PutProxy(t)
+	case uint32:
+		r.PutUint32(t)
+	case int32:
+		r.PutInt32(t)
+	case float32:
+		r.PutFloat32(t)
+	case string:
+		r.PutString(t)
+	case []int32:
+		r.PutArray(t)
+	case uintptr:
+		r.PutFd(t)
+	default:
+		panic("Invalid Wayland request parameter type.")
+	}
 }
 
 func (r *Request) PutUint32(u uint32) {
-	//buf := make([]byte, 4)
 	buf := bytePool.Take(4)
 	order.PutUint32(buf, u)
 	r.data = append(r.data, buf...)
@@ -66,35 +88,7 @@ func (r *Request) PutFd(fd uintptr) {
 	r.oob = append(r.oob, rights...)
 }
 
-func (r *Request) Write(arg interface{}) {
-	switch t := arg.(type) {
-	case Proxy:
-		r.PutProxy(t)
-	case uint32:
-		r.PutUint32(t)
-	case int32:
-		r.PutInt32(t)
-	case float32:
-		r.PutFloat32(t)
-	case string:
-		r.PutString(t)
-	case []int32:
-		r.PutArray(t)
-	case uintptr:
-		r.PutFd(t)
-	default:
-		panic("Invalid Wayland request parameter type.")
-	}
-}
-
-func NewRequest(p Proxy, opcode uint32) *Request {
-	req := new(Request)
-	req.pid = p.Id()
-	req.opcode = opcode
-	return req
-}
-
-func SendMessage(conn *net.UnixConn, r *Request) error {
+func writeRequest(conn *net.UnixConn, r Request) error {
 	var header []byte
 	// calculate message total size
 	size := uint32(len(r.data) + 8)
@@ -106,11 +100,9 @@ func SendMessage(conn *net.UnixConn, r *Request) error {
 
 	d, c, err := conn.WriteMsgUnix(append(header, r.data...), r.oob, nil)
 	if err != nil {
-		//panic(err)
 		return err
 	}
 	if c != len(r.oob) || d != (len(header)+len(r.data)) {
-		//panic("WriteMsgUnix failed.")
 		return errors.New("WriteMsgUnix failed")
 	}
 	bytePool.Give(r.data)

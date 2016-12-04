@@ -46,7 +46,7 @@ func init() {
 
 // from https://golang.org/src/math/unsafe.go
 func Float64frombits(b uint64) float64 { return *(*float64)(unsafe.Pointer(&b)) }
-func Float64bits(f float64) uint64 { return *(*uint64)(unsafe.Pointer(&f)) }
+func Float64bits(f float64) uint64     { return *(*uint64)(unsafe.Pointer(&f)) }
 
 func fixedToFloat64(fixed int32) float64 {
 	dat := ((int64(1023 + 44)) << 52) + (1 << 51) + int64(fixed)
