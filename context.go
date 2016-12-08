@@ -34,8 +34,8 @@ func (ctx *Context) register(proxy Proxy) {
 
 func (ctx *Context) lookupProxy(id ProxyId) Proxy {
 	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
 	proxy, ok := ctx.objects[id]
-	ctx.mu.RUnlock()
 	if !ok {
 		return nil
 	}
@@ -94,8 +94,9 @@ loop:
 			ev, err := c.readEvent()
 			if err != nil {
 				if err == io.EOF {
-					log.Print("EOF Error")
+					// connection closed
 					break loop
+
 				}
 
 				if neterr, ok := err.(net.Error); ok && neterr.Timeout() {

@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"runtime/debug"
+	_ "net/http/pprof"
+	"net/http"
 )
 
 import (
@@ -23,6 +25,11 @@ func main() {
 			debug.PrintStack()
 		}
 	}()
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 
 	exitChan := make(chan bool, 10)
 
