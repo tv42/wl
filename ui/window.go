@@ -9,7 +9,7 @@ import (
 )
 
 import (
-	wl ".."
+	"github.com/sternix/wl"
 )
 
 type Window struct {

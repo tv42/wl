@@ -8,7 +8,7 @@ import (
 )
 
 import (
-	wl ".."
+	"github.com/sternix/wl"
 )
 
 type Display struct {

@@ -10,8 +10,8 @@ import (
 )
 
 import (
-	ui "../.."
-	wl "../../.."
+	"github.com/sternix/wl"
+	"github.com/sternix/wl/ui"
 )
 
 func init() {
