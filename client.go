@@ -1967,6 +1967,7 @@ const (
 	PointerAxisSourceWheel      = 0
 	PointerAxisSourceFinger     = 1
 	PointerAxisSourceContinuous = 2
+	PointerAxisSourceWheelTilt  = 3
 )
 
 type KeyboardKeymapEvent struct {
@@ -2363,6 +2364,57 @@ func (p *Touch) RemoveCancelHandler(h Handler) {
 	}
 }
 
+type TouchShapeEvent struct {
+	Id    int32
+	Major float32
+	Minor float32
+}
+
+func (p *Touch) AddShapeHandler(h Handler) {
+	if h != nil {
+		p.mu.Lock()
+		p.shapeHandlers = append(p.shapeHandlers, h)
+		p.mu.Unlock()
+	}
+}
+
+func (p *Touch) RemoveShapeHandler(h Handler) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	for i, e := range p.shapeHandlers {
+		if e == h {
+			p.shapeHandlers = append(p.shapeHandlers[:i], p.shapeHandlers[i+1:]...)
+			break
+		}
+	}
+}
+
+type TouchOrientationEvent struct {
+	Id          int32
+	Orientation float32
+}
+
+func (p *Touch) AddOrientationHandler(h Handler) {
+	if h != nil {
+		p.mu.Lock()
+		p.orientationHandlers = append(p.orientationHandlers, h)
+		p.mu.Unlock()
+	}
+}
+
+func (p *Touch) RemoveOrientationHandler(h Handler) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	for i, e := range p.orientationHandlers {
+		if e == h {
+			p.orientationHandlers = append(p.orientationHandlers[:i], p.orientationHandlers[i+1:]...)
+			break
+		}
+	}
+}
+
 func (p *Touch) Dispatch(event *Event) {
 	switch event.opcode {
 	case 0:
@@ -2423,17 +2475,42 @@ func (p *Touch) Dispatch(event *Event) {
 			}
 			p.mu.RUnlock()
 		}
+	case 5:
+		if len(p.shapeHandlers) > 0 {
+			ev := TouchShapeEvent{}
+			ev.Id = event.Int32()
+			ev.Major = event.Float32()
+			ev.Minor = event.Float32()
+			p.mu.RLock()
+			for _, h := range p.shapeHandlers {
+				h.Handle(ev)
+			}
+			p.mu.RUnlock()
+		}
+	case 6:
+		if len(p.orientationHandlers) > 0 {
+			ev := TouchOrientationEvent{}
+			ev.Id = event.Int32()
+			ev.Orientation = event.Float32()
+			p.mu.RLock()
+			for _, h := range p.orientationHandlers {
+				h.Handle(ev)
+			}
+			p.mu.RUnlock()
+		}
 	}
 }
 
 type Touch struct {
 	BaseProxy
-	mu             sync.RWMutex
-	downHandlers   []Handler
-	upHandlers     []Handler
-	motionHandlers []Handler
-	frameHandlers  []Handler
-	cancelHandlers []Handler
+	mu                  sync.RWMutex
+	downHandlers        []Handler
+	upHandlers          []Handler
+	motionHandlers      []Handler
+	frameHandlers       []Handler
+	cancelHandlers      []Handler
+	shapeHandlers       []Handler
+	orientationHandlers []Handler
 }
 
 func NewTouch(ctx *Context) *Touch {
