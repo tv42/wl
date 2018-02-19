@@ -2,7 +2,7 @@ package ui
 
 import (
 	"fmt"
-	"github.com/dkolbly/wl"
+	//"github.com/dkolbly/wl"
 	"github.com/dkolbly/wl/xdg"
 )
 
@@ -21,13 +21,11 @@ type Config struct {
 // an AckConfigure request.
 
 // the compositor wants the surface to be closed, based on user action
-func (w *Window) gotToplevelClose(x interface{}) {
-	ev := x.(xdg.ToplevelCloseEvent)
+func (w *Window) HandleToplevelClose(ev xdg.ToplevelCloseEvent) {
 	fmt.Printf("toplevel close request: %v\n", ev)
 }
 
-func (w *Window) didToplevelConfigure(x interface{}) {
-	ev := x.(xdg.ToplevelConfigureEvent)
+func (w *Window) HandleToplevelConfigure(ev xdg.ToplevelConfigureEvent) {
 	fmt.Printf("toplevel configured: %v\n", ev)
 
 	pend := Config{
@@ -42,8 +40,7 @@ func (w *Window) didToplevelConfigure(x interface{}) {
 	w.pending = pend
 }
 
-func (w *Window) didSurfaceConfigure(x interface{}) {
-	ev := x.(xdg.SurfaceConfigureEvent)
+func (w *Window) HandleSurfaceConfigure(ev xdg.SurfaceConfigureEvent) {
 	fmt.Printf("surface configured; committing %#v\n", w.pending)
 	// and ack it
 	w.xdgSurface.AckConfigure(ev.Serial)
@@ -80,7 +77,7 @@ func (w *Window) setupXDGTopLevel() error {
 		fmt.Printf("surface configured: %#v\n", x)
 	})*/
 
-	s.AddConfigureHandler(wl.HandlerFunc(w.didSurfaceConfigure))
+	s.AddConfigureHandler(w)
 
 	top, err := s.GetToplevel()
 	if err != nil {
@@ -96,8 +93,8 @@ func (w *Window) setupXDGTopLevel() error {
 	barc := wl.HandlerFunc(func(x interface{}) {
 		fmt.Printf("toplevel closed: %#v\n", x)
 	})*/
-	top.AddConfigureHandler(wl.HandlerFunc(w.didToplevelConfigure))
-	top.AddCloseHandler(wl.HandlerFunc(w.gotToplevelClose))
+	top.AddConfigureHandler(w)
+top.AddCloseHandler(w)
 
 	err = s.SetWindowGeometry(10, 10, 300, 300)
 	if err != nil {

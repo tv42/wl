@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"log"
+	//"log"
 	"syscall"
 
 	"github.com/dkolbly/wl"
@@ -111,12 +111,6 @@ func (w *Window) Dispose() {
 	w.display.unregisterWindow(w)
 }
 
-func (w *Window) Handle(e interface{}) {
-	fmt.Printf("handling %#v\n", e)
-	switch ev := e.(type) {
-	case wl.ShellSurfacePingEvent:
-		w.shSurface.Pong(ev.Serial)
-	default:
-		log.Print("unhandled event")
-	}
+func (w *Window) HandleShellSurfacePing(ev wl.ShellSurfacePingEvent) {
+	w.shSurface.Pong(ev.Serial)
 }

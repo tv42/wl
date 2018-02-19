@@ -80,6 +80,23 @@ func (d *Display) Context() *wl.Context {
 	return d.display.Context()
 }
 
+type registrar struct {
+	ch chan wl.RegistryGlobalEvent
+}
+
+func (r registrar) HandleRegistryGlobal(ev wl.RegistryGlobalEvent) {
+	r.ch <- ev
+}
+
+type doner struct {
+	ch chan wl.CallbackDoneEvent
+}
+
+func (d doner) HandleCallbackDone(ev wl.CallbackDoneEvent) {
+	d.ch <- ev
+}
+
+
 func (d *Display) registerGlobals() error {
 	registry, err := d.display.GetRegistry()
 	if err != nil {
@@ -93,21 +110,12 @@ func (d *Display) registerGlobals() error {
 	}
 
 	rgeChan := make(chan wl.RegistryGlobalEvent)
-	rgeFunc := func(e interface{}) {
-		if ev, ok := e.(wl.RegistryGlobalEvent); ok {
-			rgeChan <- ev
-		}
-	}
-	rgeHandler := wl.HandlerFunc(rgeFunc)
+	rgeHandler := registrar{rgeChan}
 	registry.AddGlobalHandler(rgeHandler)
 
 	cdeChan := make(chan wl.CallbackDoneEvent)
-	cdeFunc := func(e interface{}) {
-		if ev, ok := e.(wl.CallbackDoneEvent); ok {
-			cdeChan <- ev
-		}
-	}
-	cdeHandler := wl.HandlerFunc(cdeFunc)
+	cdeHandler := doner{cdeChan}
+	
 	callback.AddDoneHandler(cdeHandler)
 loop:
 	for {
@@ -127,6 +135,14 @@ loop:
 	return nil
 }
 
+type seatcap struct {
+	ch chan wl.SeatCapabilitiesEvent
+}
+
+func (sce seatcap) HandleSeatCapabilities(ev wl.SeatCapabilitiesEvent) {
+	sce.ch <- ev
+}
+
 func (d *Display) registerInputs() error {
 	callback, err := d.display.Sync()
 	if err != nil {
@@ -134,21 +150,11 @@ func (d *Display) registerInputs() error {
 	}
 
 	cdeChan := make(chan wl.CallbackDoneEvent)
-	cdeFunc := func(e interface{}) {
-		if ev, ok := e.(wl.CallbackDoneEvent); ok {
-			cdeChan <- ev
-		}
-	}
-	cdeHandler := wl.HandlerFunc(cdeFunc)
+	cdeHandler := doner{cdeChan}
 	callback.AddDoneHandler(cdeHandler)
 
 	sceChan := make(chan wl.SeatCapabilitiesEvent)
-	sceFunc := func(e interface{}) {
-		if ev, ok := e.(wl.SeatCapabilitiesEvent); ok {
-			sceChan <- ev
-		}
-	}
-	sceHandler := wl.HandlerFunc(sceFunc)
+	sceHandler := seatcap{sceChan}
 	d.seat.AddCapabilitiesHandler(sceHandler)
 
 loop:
@@ -240,18 +246,13 @@ func (d *Display) registerInterface(registry *wl.Registry, ev wl.RegistryGlobalE
 			return fmt.Errorf("Unable to bind Subcompositor interface: %s", err)
 		}
 		d.wmBase = ret
-		d.wmBase.AddPingHandler(wl.HandlerFunc(d.didWmBasePing))
+		d.wmBase.AddPingHandler(d)
 	}
 	return nil
 }
 
-func (d *Display) Handle(e interface{}) {
-	switch ev := e.(type) {
-	case wl.DisplayErrorEvent:
-		log.Fatalf("Display Error Event: %d - %s - %d", ev.ObjectId.Id(), ev.Message, ev.Code)
-	default:
-		log.Print("unhandled event")
-	}
+func (d *Display) HandleDisplayError(ev wl.DisplayErrorEvent) {
+	log.Fatalf("Display Error Event: %d - %s - %d", ev.ObjectId.Id(), ev.Message, ev.Code)
 }
 
 func (d *Display) newBuffer(width, height, stride int32) (*wl.Buffer, []byte, error) {
@@ -354,8 +355,7 @@ func (d *Display) checkInputsRegistered() error {
 	return nil
 }
 
-func (d *Display) didWmBasePing(x interface{}) {
-	ev := x.(xdg.WmBasePingEvent)
+func (d *Display) HandleWmBasePing(ev xdg.WmBasePingEvent) {
 	fmt.Printf("ping <%d>\n", ev.Serial)
 	d.wmBase.Pong(ev.Serial)
 }
