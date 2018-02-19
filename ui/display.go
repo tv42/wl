@@ -9,6 +9,7 @@ import (
 
 import (
 	"github.com/dkolbly/wl"
+	"github.com/dkolbly/wl/xdg"
 )
 
 type Display struct {
@@ -24,6 +25,7 @@ type Display struct {
 	pointer           *wl.Pointer
 	keyboard          *wl.Keyboard
 	touch             *wl.Touch
+	wmBase            *xdg.XdgWmBase
 	windows           []*Window
 }
 
@@ -231,6 +233,13 @@ func (d *Display) registerInterface(registry *wl.Registry, ev wl.RegistryGlobalE
 			return fmt.Errorf("Unable to bind Subcompositor interface: %s", err)
 		}
 		d.subCompositor = ret
+	case "xdg_shell":
+		ret := xdg.NewXdgWmBase(d.Context())
+		err := registry.Bind(ev.Name, ev.Interface, ev.Version, ret)
+		if err != nil {
+			return fmt.Errorf("Unable to bind Subcompositor interface: %s", err)
+		}
+		d.wmBase = ret
 	}
 	return nil
 }

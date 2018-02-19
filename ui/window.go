@@ -10,7 +10,7 @@ import (
 
 import (
 	"github.com/dkolbly/wl"
-	"github.com/dkolbly/wl/xdg"
+	//"github.com/dkolbly/wl/xdg"
 )
 
 type Window struct {
@@ -52,9 +52,17 @@ func (d *Display) NewWindow(width, height int32) (*Window, error) {
 
 	w.shSurface.SetToplevel()
 
-	if false {
+	if true {
+		/*fmt.Printf("creating xdg_wm_base\n")
 		wm := xdg.NewXdgWmBase(d.Context())
-		wm.GetXdgSurface(w.surface)
+		fmt.Printf("==> %#v\n", wm)
+*/
+		s, err := d.wmBase.GetXdgSurface(w.surface)
+		if err != nil {
+			fmt.Printf("failed to get surface: %s", err)
+		} else {
+			fmt.Printf("surface is %#v\n", s)
+		}
 	}
 
 	err = w.surface.Attach(w.buffer, width, height)
