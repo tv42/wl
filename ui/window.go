@@ -10,6 +10,7 @@ import (
 
 import (
 	"github.com/dkolbly/wl"
+	"github.com/dkolbly/wl/xdg"
 )
 
 type Window struct {
@@ -50,6 +51,11 @@ func (d *Display) NewWindow(width, height int32) (*Window, error) {
 	w.shSurface.AddPingHandler(w)
 
 	w.shSurface.SetToplevel()
+
+	if false {
+		wm := xdg.NewXdgWmBase(d.Context())
+		wm.GetXdgSurface(w.surface)
+	}
 
 	err = w.surface.Attach(w.buffer, width, height)
 	if err != nil {

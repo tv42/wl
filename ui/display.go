@@ -187,6 +187,7 @@ loop:
 }
 
 func (d *Display) registerInterface(registry *wl.Registry, ev wl.RegistryGlobalEvent) error {
+	fmt.Printf("*** %q ***\n", ev.Interface)
 	switch ev.Interface {
 	case "wl_shm":
 		ret := wl.NewShm(d.Context())
