@@ -6,11 +6,9 @@ import (
 	"image/draw"
 	"log"
 	"syscall"
-)
 
-import (
 	"github.com/dkolbly/wl"
-	//"github.com/dkolbly/wl/xdg"
+	"github.com/dkolbly/wl/xdg"
 )
 
 type Window struct {
@@ -18,10 +16,13 @@ type Window struct {
 	display       *Display
 	surface       *wl.Surface
 	shSurface     *wl.ShellSurface
+	xdgSurface    *xdg.Surface
 	buffer        *wl.Buffer
 	data          []byte
 	image         *image.RGBA
 	title         string
+	pending       Config
+	current       Config
 }
 
 func (d *Display) NewWindow(width, height int32) (*Window, error) {
@@ -43,26 +44,22 @@ func (d *Display) NewWindow(width, height int32) (*Window, error) {
 		return nil, err
 	}
 
-	w.shSurface, err = d.shell.GetShellSurface(w.surface)
-	if err != nil {
-		return nil, fmt.Errorf("Shell.GetShellSurface failed: %s", err)
+	if d.wmBase == nil {
+		panic("no wmbase")
 	}
-
-	w.shSurface.AddPingHandler(w)
-
-	w.shSurface.SetToplevel()
-
-	if true {
-		/*fmt.Printf("creating xdg_wm_base\n")
-		wm := xdg.NewXdgWmBase(d.Context())
-		fmt.Printf("==> %#v\n", wm)
-*/
-		s, err := d.wmBase.GetXdgSurface(w.surface)
+	if d.wmBase != nil {
+		// New XDG shell
+		w.setupXDGTopLevel()
+	} else {
+		// older plain-jane wl_shell
+		w.shSurface, err = d.shell.GetShellSurface(w.surface)
 		if err != nil {
-			fmt.Printf("failed to get surface: %s", err)
-		} else {
-			fmt.Printf("surface is %#v\n", s)
+			return nil, fmt.Errorf("Shell.GetShellSurface failed: %s", err)
 		}
+
+		w.shSurface.AddPingHandler(w)
+
+		w.shSurface.SetToplevel()
 	}
 
 	err = w.surface.Attach(w.buffer, width, height)
@@ -75,18 +72,20 @@ func (d *Display) NewWindow(width, height int32) (*Window, error) {
 		return nil, fmt.Errorf("Surface.Damage failed: %s", err)
 	}
 
-	err = w.surface.Commit()
-	if err != nil {
-		return nil, fmt.Errorf("Surface.Commit failed: %s", err)
-	}
+	if true {
+		err = w.surface.Commit()
+		if err != nil {
+			return nil, fmt.Errorf("Surface.Commit failed: %s", err)
+		}
 
-	w.image = &image.RGBA{
-		Pix:    w.data,
-		Stride: int(stride),
-		Rect:   image.Rect(0, 0, int(width), int(height)),
-	}
+		w.image = &image.RGBA{
+			Pix:    w.data,
+			Stride: int(stride),
+			Rect:   image.Rect(0, 0, int(width), int(height)),
+		}
 
-	d.registerWindow(w)
+		d.registerWindow(w)
+	}
 
 	return w, nil
 }
@@ -106,6 +105,7 @@ func (w *Window) Dispose() {
 }
 
 func (w *Window) Handle(e interface{}) {
+	fmt.Printf("handling %#v\n", e)
 	switch ev := e.(type) {
 	case wl.ShellSurfacePingEvent:
 		w.shSurface.Pong(ev.Serial)

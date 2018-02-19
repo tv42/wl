@@ -3,10 +3,10 @@ package main
 import (
 	"flag"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime/debug"
-	_ "net/http/pprof"
-	"net/http"
 )
 
 import (
@@ -29,7 +29,6 @@ func main() {
 	go func() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
-
 
 	exitChan := make(chan bool, 10)
 

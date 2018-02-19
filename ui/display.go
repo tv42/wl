@@ -25,7 +25,7 @@ type Display struct {
 	pointer           *wl.Pointer
 	keyboard          *wl.Keyboard
 	touch             *wl.Touch
-	wmBase            *xdg.XdgWmBase
+	wmBase            *xdg.WmBase
 	windows           []*Window
 }
 
@@ -189,7 +189,7 @@ loop:
 }
 
 func (d *Display) registerInterface(registry *wl.Registry, ev wl.RegistryGlobalEvent) error {
-	fmt.Printf("*** %q ***\n", ev.Interface)
+	fmt.Printf("we discovered an interface: %q\n", ev.Interface)
 	switch ev.Interface {
 	case "wl_shm":
 		ret := wl.NewShm(d.Context())
@@ -233,8 +233,8 @@ func (d *Display) registerInterface(registry *wl.Registry, ev wl.RegistryGlobalE
 			return fmt.Errorf("Unable to bind Subcompositor interface: %s", err)
 		}
 		d.subCompositor = ret
-	case "xdg_shell":
-		ret := xdg.NewXdgWmBase(d.Context())
+	case "zxdg_shell_v6":
+		ret := xdg.NewWmBase(d.Context())
 		err := registry.Bind(ev.Name, ev.Interface, ev.Version, ret)
 		if err != nil {
 			return fmt.Errorf("Unable to bind Subcompositor interface: %s", err)
