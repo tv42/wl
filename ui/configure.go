@@ -20,12 +20,6 @@ type Config struct {
 // those changes, do whatever we need to do, and then respond with
 // an AckConfigure request.
 
-func (w *Window) didWmBasePing(x interface{}) {
-	ev := x.(xdg.WmBasePingEvent)
-	fmt.Printf("ping <%d>\n", ev.Serial)
-	w.display.wmBase.Pong(ev.Serial)
-}
-
 // the compositor wants the surface to be closed, based on user action
 func (w *Window) gotToplevelClose(x interface{}) {
 	ev := x.(xdg.ToplevelCloseEvent)
@@ -86,7 +80,6 @@ func (w *Window) setupXDGTopLevel() error {
 		fmt.Printf("surface configured: %#v\n", x)
 	})*/
 
-	d.wmBase.AddPingHandler(wl.HandlerFunc(w.didWmBasePing))
 	s.AddConfigureHandler(wl.HandlerFunc(w.didSurfaceConfigure))
 
 	top, err := s.GetToplevel()

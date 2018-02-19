@@ -12,17 +12,16 @@ import (
 )
 
 type Window struct {
-	width, height int32
-	display       *Display
-	surface       *wl.Surface
-	shSurface     *wl.ShellSurface
-	xdgSurface    *xdg.Surface
-	buffer        *wl.Buffer
-	data          []byte
-	image         *image.RGBA
-	title         string
-	pending       Config
-	current       Config
+	display    *Display
+	surface    *wl.Surface
+	shSurface  *wl.ShellSurface
+	xdgSurface *xdg.Surface
+	buffer     *wl.Buffer
+	data       []byte
+	image      *BGRA
+	title      string
+	pending    Config
+	current    Config
 }
 
 func (d *Display) NewWindow(width, height int32) (*Window, error) {
@@ -30,8 +29,14 @@ func (d *Display) NewWindow(width, height int32) (*Window, error) {
 	stride := width * 4
 
 	w := new(Window)
-	w.width = width
-	w.height = height
+	pend := Config{
+		Width:  int(width),
+		Height: int(height),
+	}
+
+	w.pending = pend
+	w.current = pend
+
 	w.display = d
 
 	w.surface, err = d.compositor.CreateSurface()
@@ -78,11 +83,9 @@ func (d *Display) NewWindow(width, height int32) (*Window, error) {
 			return nil, fmt.Errorf("Surface.Commit failed: %s", err)
 		}
 
-		w.image = &image.RGBA{
-			Pix:    w.data,
-			Stride: int(stride),
-			Rect:   image.Rect(0, 0, int(width), int(height)),
-		}
+		w.image = NewBGRAWithData(
+			image.Rect(0, 0, int(width), int(height)),
+			w.data)
 
 		d.registerWindow(w)
 	}
@@ -90,14 +93,18 @@ func (d *Display) NewWindow(width, height int32) (*Window, error) {
 	return w, nil
 }
 
+func (w *Window) DrawUsingFunc(fn func(*BGRA)) {
+	fn(w.image)
+}
+
 func (w *Window) Draw(img image.Image) {
 	draw.Draw(w.image, img.Bounds(), img, img.Bounds().Min, draw.Src)
-	//draw.Draw(w.image, img.Bounds(), img, image.ZP, draw.Src)
-	BGRA(w.image.Pix)
 }
 
 func (w *Window) Dispose() {
-	w.shSurface.RemovePingHandler(w)
+	if w.shSurface != nil {
+		w.shSurface.RemovePingHandler(w)
+	}
 	w.surface.Destroy()
 	w.buffer.Destroy()
 	syscall.Munmap(w.data)

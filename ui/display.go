@@ -240,6 +240,7 @@ func (d *Display) registerInterface(registry *wl.Registry, ev wl.RegistryGlobalE
 			return fmt.Errorf("Unable to bind Subcompositor interface: %s", err)
 		}
 		d.wmBase = ret
+		d.wmBase.AddPingHandler(wl.HandlerFunc(d.didWmBasePing))
 	}
 	return nil
 }
@@ -351,4 +352,10 @@ func (d *Display) checkInputsRegistered() error {
 	}
 
 	return nil
+}
+
+func (d *Display) didWmBasePing(x interface{}) {
+	ev := x.(xdg.WmBasePingEvent)
+	fmt.Printf("ping <%d>\n", ev.Serial)
+	d.wmBase.Pong(ev.Serial)
 }

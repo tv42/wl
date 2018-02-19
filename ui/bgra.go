@@ -1,4 +1,4 @@
-package wl
+package ui
 
 import (
 	"image"
@@ -21,6 +21,13 @@ func NewBGRA(r image.Rectangle) *BGRA {
 	return &BGRA{buf, 4 * w, r}
 }
 
+func NewBGRAWithData(r image.Rectangle, data []uint8) *BGRA {
+	w, h := r.Dx(), r.Dy()
+	if len(data) < 4*w*h {
+		panic("not enough data supplied")
+	}
+	return &BGRA{data, 4 * w, r}
+}
 
 func (p *BGRA) ColorModel() color.Model { return color.RGBAModel }
 
