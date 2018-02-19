@@ -49,9 +49,6 @@ func (d *Display) NewWindow(width, height int32) (*Window, error) {
 		return nil, err
 	}
 
-	if d.wmBase == nil {
-		panic("no wmbase")
-	}
 	if d.wmBase != nil {
 		// New XDG shell
 		w.setupXDGTopLevel()
@@ -63,7 +60,6 @@ func (d *Display) NewWindow(width, height int32) (*Window, error) {
 		}
 
 		w.shSurface.AddPingHandler(w)
-
 		w.shSurface.SetToplevel()
 	}
 

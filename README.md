@@ -1,11 +1,25 @@
 # wl
-Golang wayland protocol implementation
 
-for test  
+A wayland protocol implementation in pure Go.
 
-go get github.com/sternix/wl/ui/examples/img  
-then execute  
+This is a Go implementation of the Wayland protocol.  The protocol
+files themselves (`client.go` and `xdg/shell.go`) are built using the
+tool in `github.com/dkolbly/wl-scanner` from the XML protocol
+specification files.
 
-$GOPATH/bin/img $GOPATH/src/github.com/sternix/wl/ui/examples/img/bsd_daemon.jpg  
+To test:
+```
+go get github.com/dkolbly/wl/ui/examples/img  
+```
 
-this is a hobby project i hope to help people, who interested wayland protocol
+then:
+```
+$GOPATH/bin/img $GOPATH/src/github.com/dkolbly/wl/ui/examples/img/bsd_daemon.jpg
+```
+
+This is a hobby project, forked from a hobby project, `github.com/sternix/wl`.
+
+
+## Desktops
+
+The image program (`img`) works in both weston and in Ubuntu Gnome in wayland mode.

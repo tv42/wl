@@ -49,6 +49,7 @@ func main() {
 	b := img.Bounds()
 	w := int32(b.Dx())
 	h := int32(b.Dy())
+
 	window, err := display.NewWindow(w, h)
 	if err != nil {
 		log.Fatal(err)

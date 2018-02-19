@@ -1,10 +1,10 @@
 package ui
 
 import (
+	"github.com/golang/freetype/raster"
 	"image"
 	"image/color"
 	"image/draw"
-	"github.com/golang/freetype/raster"
 )
 
 // BGRA is like RGBA but in wayland's byte order
@@ -99,7 +99,7 @@ func (p *BGRA) Opaque() bool {
 		return true
 	}
 	i0 := 0
-	i1 := p.Rect.Dx()*4
+	i1 := p.Rect.Dx() * 4
 	for y := p.Rect.Min.Y; y < p.Rect.Max.Y; y++ {
 		for i := i0; i < i1; i += 4 {
 			if p.Pix[i+3] != 0xff {
@@ -115,9 +115,9 @@ func (p *BGRA) Opaque() bool {
 // a BGRAPainter is used to interface with the freetype renderer and
 // raster library
 type BGRAPainter struct {
-	image *BGRA
+	image      *BGRA
 	r, g, b, a uint32
-	op draw.Op
+	op         draw.Op
 }
 
 func (p *BGRA) Painter() *BGRAPainter {

@@ -94,7 +94,7 @@ func (w *Window) setupXDGTopLevel() error {
 		fmt.Printf("toplevel closed: %#v\n", x)
 	})*/
 	top.AddConfigureHandler(w)
-top.AddCloseHandler(w)
+	top.AddCloseHandler(w)
 
 	err = s.SetWindowGeometry(10, 10, 300, 300)
 	if err != nil {

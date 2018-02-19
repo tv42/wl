@@ -15,7 +15,7 @@ type Request struct {
 
 func (context *Context) SendRequest(proxy Proxy, opcode uint32, args ...interface{}) (err error) {
 	req := Request{
-		pid: proxy.Id(),
+		pid:    proxy.Id(),
 		opcode: opcode,
 	}
 

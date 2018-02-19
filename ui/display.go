@@ -96,7 +96,6 @@ func (d doner) HandleCallbackDone(ev wl.CallbackDoneEvent) {
 	d.ch <- ev
 }
 
-
 func (d *Display) registerGlobals() error {
 	registry, err := d.display.GetRegistry()
 	if err != nil {
@@ -115,7 +114,7 @@ func (d *Display) registerGlobals() error {
 
 	cdeChan := make(chan wl.CallbackDoneEvent)
 	cdeHandler := doner{cdeChan}
-	
+
 	callback.AddDoneHandler(cdeHandler)
 loop:
 	for {
