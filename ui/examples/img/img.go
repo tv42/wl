@@ -64,7 +64,7 @@ loop:
 		select {
 		case <-exitChan:
 			break loop
-		case display.Dispatch() <- true:
+		case display.Dispatch() <- struct{}{}:
 		}
 	}
 

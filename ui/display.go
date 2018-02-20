@@ -72,7 +72,7 @@ func (d *Display) Disconnect() {
 	d.display.Context().Close()
 }
 
-func (d *Display) Dispatch() chan<- bool {
+func (d *Display) Dispatch() chan<- struct{} {
 	return d.Context().Dispatch()
 }
 
@@ -123,7 +123,7 @@ loop:
 			if err := d.registerInterface(registry, ev); err != nil {
 				return err
 			}
-		case d.Dispatch() <- true:
+		case d.Dispatch() <- struct{}{}:
 		case <-cdeChan:
 			break loop
 		}
@@ -181,7 +181,7 @@ loop:
 				}
 				d.touch = touch
 			}
-		case d.Dispatch() <- true:
+		case d.Dispatch() <- struct{}{}:
 		case <-cdeChan:
 			break loop
 		}
