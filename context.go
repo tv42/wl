@@ -40,7 +40,7 @@ func (ctx *Context) lookupProxy(id ProxyId) Proxy {
 }
 
 func (c *Context) Close() {
-	c.conn.Close()
+	c.conn.CloseWrite()
 }
 
 func Connect(addr string) (ret *Display, err error) {
