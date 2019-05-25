@@ -7,7 +7,6 @@ import (
 	"net"
 	"os"
 	"sync"
-	"time"
 )
 
 func init() {
@@ -63,7 +62,6 @@ func Connect(addr string) (ret *Display, err error) {
 	if err != nil {
 		return nil, err
 	}
-	c.conn.SetReadDeadline(time.Time{})
 	//dispatch events in separate gorutine
 	go c.run()
 	return NewDisplay(c), nil
