@@ -2,39 +2,12 @@ package wl
 
 import (
 	"encoding/binary"
-	"sync"
 	"unsafe"
 )
 
-type BytePool struct {
-	p sync.Pool
-}
-
 var (
-	order    binary.ByteOrder
-	bytePool = &BytePool{
-		p: sync.Pool{
-			New: func() interface{} {
-				tmp := make([]byte, 16)
-				return &tmp
-			},
-		},
-	}
+	order binary.ByteOrder
 )
-
-func (bp *BytePool) Take(n int) []byte {
-	buf := *(bp.p.Get().(*[]byte))
-	if cap(buf) < n {
-		t := make([]byte, len(buf), n)
-		copy(t, buf)
-		buf = t
-	}
-	return buf[:n]
-}
-
-func (bp *BytePool) Give(b []byte) {
-	bp.p.Put(&b)
-}
 
 func init() {
 	var x uint32 = 0x01020304

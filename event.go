@@ -15,8 +15,8 @@ type Event struct {
 }
 
 func (c *Context) readEvent() (*Event, error) {
-	buf := bytePool.Take(8)
-	control := bytePool.Take(24)
+	buf := make([]byte, 8)
+	control := make([]byte, 24)
 
 	n, oobn, _, _, err := c.conn.ReadMsgUnix(buf[:], control)
 	if err != nil {
@@ -42,7 +42,7 @@ func (c *Context) readEvent() (*Event, error) {
 	size := uint32(order.Uint16(buf[6:8]))
 
 	// subtract 8 bytes from header
-	data := bytePool.Take(int(size) - 8)
+	data := make([]byte, int(size)-8)
 	n, err = c.conn.Read(data)
 	if err != nil {
 		return nil, err
@@ -51,9 +51,6 @@ func (c *Context) readEvent() (*Event, error) {
 		return nil, fmt.Errorf("invalid message size")
 	}
 	ev.data = data
-
-	bytePool.Give(buf)
-	bytePool.Give(control)
 
 	return ev, nil
 }

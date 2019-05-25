@@ -48,7 +48,7 @@ func (r *Request) Write(arg interface{}) {
 }
 
 func (r *Request) PutUint32(u uint32) {
-	buf := bytePool.Take(4)
+	buf := make([]byte, 4)
 	order.PutUint32(buf, u)
 	r.data = append(r.data, buf...)
 }
@@ -106,7 +106,6 @@ func writeRequest(conn *net.UnixConn, r Request) error {
 	if c != len(r.oob) || d != (len(header)+len(r.data)) {
 		return errors.New("WriteMsgUnix failed")
 	}
-	bytePool.Give(r.data)
 
 	return nil
 }

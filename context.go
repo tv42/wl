@@ -81,7 +81,6 @@ func (c *Context) run() {
 		if proxy != nil {
 			if dispatcher, ok := proxy.(Dispatcher); ok {
 				dispatcher.Dispatch(ev)
-				bytePool.Give(ev.data)
 			} else {
 				log.Print("Not dispatched")
 			}
