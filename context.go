@@ -102,11 +102,6 @@ loop:
 
 				}
 
-				if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
-					log.Print("Timeout Error")
-					continue
-				}
-
 				log.Fatal(err)
 			}
 
