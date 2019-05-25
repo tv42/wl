@@ -70,16 +70,12 @@ func Connect(addr string) (ret *Display, err error) {
 }
 
 func (c *Context) run() {
-loop:
 	for {
 		ev, err := c.readEvent()
 		if err != nil {
 			if err == io.EOF {
-				// connection closed
-				break loop
-
+				return
 			}
-
 			log.Fatal(err)
 		}
 
