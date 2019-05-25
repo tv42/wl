@@ -4,6 +4,8 @@ import (
 	"context"
 )
 
+//go:generate go run github.com/dkolbly/wl-scanner -source https://cgit.freedesktop.org/wayland/wayland/plain/protocol/wayland.xml -output client.go
+
 type ProxyId uint32
 
 type Dispatcher interface {
