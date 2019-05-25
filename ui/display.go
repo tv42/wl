@@ -163,21 +163,21 @@ loop:
 			if (ev.Capabilities & wl.SeatCapabilityPointer) != 0 {
 				pointer, err := d.seat.GetPointer()
 				if err != nil {
-					return fmt.Errorf("Unable to get Pointer object: %s", err)
+					return fmt.Errorf("unable to get Pointer object: %s", err)
 				}
 				d.pointer = pointer
 			}
 			if (ev.Capabilities & wl.SeatCapabilityKeyboard) != 0 {
 				keyboard, err := d.seat.GetKeyboard()
 				if err != nil {
-					return fmt.Errorf("Unable to get Keyboard object: %s", err)
+					return fmt.Errorf("unable to get Keyboard object: %s", err)
 				}
 				d.keyboard = keyboard
 			}
 			if (ev.Capabilities & wl.SeatCapabilityTouch) != 0 {
 				touch, err := d.seat.GetTouch()
 				if err != nil {
-					return fmt.Errorf("Unable to get Touch object: %s", err)
+					return fmt.Errorf("unable to get Touch object: %s", err)
 				}
 				d.touch = touch
 			}
@@ -200,49 +200,49 @@ func (d *Display) registerInterface(registry *wl.Registry, ev wl.RegistryGlobalE
 		ret := wl.NewShm(d.Context())
 		err := registry.Bind(ev.Name, ev.Interface, ev.Version, ret)
 		if err != nil {
-			return fmt.Errorf("Unable to bind Shm interface: %s", err)
+			return fmt.Errorf("unable to bind Shm interface: %s", err)
 		}
 		d.shm = ret
 	case "wl_compositor":
 		ret := wl.NewCompositor(d.Context())
 		err := registry.Bind(ev.Name, ev.Interface, ev.Version, ret)
 		if err != nil {
-			return fmt.Errorf("Unable to bind Compositor interface: %s", err)
+			return fmt.Errorf("unable to bind Compositor interface: %s", err)
 		}
 		d.compositor = ret
 	case "wl_shell":
 		ret := wl.NewShell(d.Context())
 		err := registry.Bind(ev.Name, ev.Interface, ev.Version, ret)
 		if err != nil {
-			return fmt.Errorf("Unable to bind Shell interface: %s", err)
+			return fmt.Errorf("unable to bind Shell interface: %s", err)
 		}
 		d.shell = ret
 	case "wl_seat":
 		ret := wl.NewSeat(d.Context())
 		err := registry.Bind(ev.Name, ev.Interface, ev.Version, ret)
 		if err != nil {
-			return fmt.Errorf("Unable to bind Seat interface: %s", err)
+			return fmt.Errorf("unable to bind Seat interface: %s", err)
 		}
 		d.seat = ret
 	case "wl_data_device_manager":
 		ret := wl.NewDataDeviceManager(d.Context())
 		err := registry.Bind(ev.Name, ev.Interface, ev.Version, ret)
 		if err != nil {
-			return fmt.Errorf("Unable to bind DataDeviceManager interface: %s", err)
+			return fmt.Errorf("unable to bind DataDeviceManager interface: %s", err)
 		}
 		d.dataDeviceManager = ret
 	case "wl_subcompositor":
 		ret := wl.NewSubcompositor(d.Context())
 		err := registry.Bind(ev.Name, ev.Interface, ev.Version, ret)
 		if err != nil {
-			return fmt.Errorf("Unable to bind Subcompositor interface: %s", err)
+			return fmt.Errorf("unable to bind Subcompositor interface: %s", err)
 		}
 		d.subCompositor = ret
 	case "zxdg_shell_v6":
 		ret := xdg.NewWmBase(d.Context())
 		err := registry.Bind(ev.Name, ev.Interface, ev.Version, ret)
 		if err != nil {
-			return fmt.Errorf("Unable to bind Subcompositor interface: %s", err)
+			return fmt.Errorf("unable to bind Subcompositor interface: %s", err)
 		}
 		d.wmBase = ret
 		d.wmBase.AddPingHandler(d)
@@ -308,18 +308,22 @@ func (d *Display) FindWindow() *Window {
 
 func (d *Display) checkGlobalsRegistered() error {
 	if d.seat == nil {
+		//lint:ignore ST1005 keep Wayland terminology capitalized
 		return fmt.Errorf("Seat is not registered")
 	}
 
 	if d.compositor == nil {
+		//lint:ignore ST1005 keep Wayland terminology capitalized
 		return fmt.Errorf("Compositor is not registered")
 	}
 
 	if d.shm == nil {
+		//lint:ignore ST1005 keep Wayland terminology capitalized
 		return fmt.Errorf("Shm is not registered")
 	}
 
 	if d.shell == nil {
+		//lint:ignore ST1005 keep Wayland terminology capitalized
 		return fmt.Errorf("Shell is not registered")
 	}
 

@@ -57,7 +57,7 @@ func (c *Context) Dispatch() chan<- struct{} {
 func Connect(addr string) (ret *Display, err error) {
 	runtime_dir := os.Getenv("XDG_RUNTIME_DIR")
 	if runtime_dir == "" {
-		return nil, errors.New("XDG_RUNTIME_DIR not set in the environment.")
+		return nil, errors.New("XDG_RUNTIME_DIR not set in the environment")
 	}
 	if addr == "" {
 		addr = os.Getenv("WAYLAND_DISPLAY")

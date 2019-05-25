@@ -40,6 +40,7 @@ func (d *Display) NewWindow(width, height int32) (*Window, error) {
 
 	w.surface, err = d.compositor.CreateSurface()
 	if err != nil {
+		//lint:ignore ST1005 keep Wayland terminology capitalized
 		return nil, fmt.Errorf("Surface creation failed: %s", err)
 	}
 

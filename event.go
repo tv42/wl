@@ -23,16 +23,16 @@ func (c *Context) readEvent() (*Event, error) {
 		return nil, err
 	}
 	if n != 8 {
-		return nil, fmt.Errorf("Unable to read message header.")
+		return nil, fmt.Errorf("unable to read message header")
 	}
 	ev := new(Event)
 	if oobn > 0 {
 		if oobn > len(control) {
-			return nil, fmt.Errorf("Unsufficient control msg buffer")
+			return nil, fmt.Errorf("unsufficient control msg buffer")
 		}
 		scms, err := syscall.ParseSocketControlMessage(control)
 		if err != nil {
-			return nil, fmt.Errorf("Control message parse error: %s", err)
+			return nil, fmt.Errorf("control message parse error: %s", err)
 		}
 		ev.scms = scms
 	}
@@ -48,7 +48,7 @@ func (c *Context) readEvent() (*Event, error) {
 		return nil, err
 	}
 	if n != int(size)-8 {
-		return nil, fmt.Errorf("Invalid message size.")
+		return nil, fmt.Errorf("invalid message size")
 	}
 	ev.data = data
 
