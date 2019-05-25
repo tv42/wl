@@ -21,7 +21,6 @@ type Context struct {
 	currentId    ProxyId
 	objects      map[ProxyId]Proxy
 	dispatchChan chan struct{}
-	exitChan     chan struct{}
 }
 
 func (ctx *Context) Register(proxy Proxy) {
@@ -45,7 +44,6 @@ func (ctx *Context) lookupProxy(id ProxyId) Proxy {
 
 func (c *Context) Close() {
 	c.conn.Close()
-	c.exitChan <- struct{}{}
 	close(c.dispatchChan)
 
 }
@@ -70,7 +68,6 @@ func Connect(addr string) (ret *Display, err error) {
 	c.objects = make(map[ProxyId]Proxy)
 	c.currentId = 0
 	c.dispatchChan = make(chan struct{})
-	c.exitChan = make(chan struct{})
 	c.conn, err = net.DialUnix("unix", nil, &net.UnixAddr{Name: addr, Net: "unix"})
 	if err != nil {
 		return nil, err
@@ -110,9 +107,6 @@ loop:
 			} else {
 				log.Print("Proxy NULL")
 			}
-
-		case <-c.exitChan:
-			break loop
 		}
 	}
 }
