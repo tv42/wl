@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-
-	//"log"
 	"syscall"
 
 	"github.com/dkolbly/wl"

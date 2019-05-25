@@ -2,7 +2,7 @@ package ui
 
 import (
 	"fmt"
-	//"github.com/dkolbly/wl"
+
 	"github.com/dkolbly/wl/xdg"
 )
 
