@@ -43,12 +43,6 @@ func (ctx *Context) lookupProxy(id ProxyId) Proxy {
 	return proxy
 }
 
-func (ctx *Context) unregister(proxy Proxy) {
-	ctx.mu.Lock()
-	defer ctx.mu.Unlock()
-	delete(ctx.objects, proxy.Id())
-}
-
 func (c *Context) Close() {
 	c.conn.Close()
 	c.exitChan <- struct{}{}
