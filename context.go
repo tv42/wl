@@ -16,11 +16,10 @@ func init() {
 }
 
 type Context struct {
-	mu           sync.RWMutex
-	conn         *net.UnixConn
-	currentId    ProxyId
-	objects      map[ProxyId]Proxy
-	dispatchChan chan struct{}
+	mu        sync.RWMutex
+	conn      *net.UnixConn
+	currentId ProxyId
+	objects   map[ProxyId]Proxy
 }
 
 func (ctx *Context) Register(proxy Proxy) {
@@ -44,12 +43,6 @@ func (ctx *Context) lookupProxy(id ProxyId) Proxy {
 
 func (c *Context) Close() {
 	c.conn.Close()
-	close(c.dispatchChan)
-
-}
-
-func (c *Context) Dispatch() chan<- struct{} {
-	return c.dispatchChan
 }
 
 func Connect(addr string) (ret *Display, err error) {
@@ -67,7 +60,6 @@ func Connect(addr string) (ret *Display, err error) {
 	c := new(Context)
 	c.objects = make(map[ProxyId]Proxy)
 	c.currentId = 0
-	c.dispatchChan = make(chan struct{})
 	c.conn, err = net.DialUnix("unix", nil, &net.UnixAddr{Name: addr, Net: "unix"})
 	if err != nil {
 		return nil, err
@@ -83,30 +75,27 @@ func (c *Context) run() {
 
 loop:
 	for {
-		select {
-		case <-c.dispatchChan:
-			ev, err := c.readEvent()
-			if err != nil {
-				if err == io.EOF {
-					// connection closed
-					break loop
+		ev, err := c.readEvent()
+		if err != nil {
+			if err == io.EOF {
+				// connection closed
+				break loop
 
-				}
-
-				log.Fatal(err)
 			}
 
-			proxy := c.lookupProxy(ev.pid)
-			if proxy != nil {
-				if dispatcher, ok := proxy.(Dispatcher); ok {
-					dispatcher.Dispatch(ctx, ev)
-					bytePool.Give(ev.data)
-				} else {
-					log.Print("Not dispatched")
-				}
+			log.Fatal(err)
+		}
+
+		proxy := c.lookupProxy(ev.pid)
+		if proxy != nil {
+			if dispatcher, ok := proxy.(Dispatcher); ok {
+				dispatcher.Dispatch(ctx, ev)
+				bytePool.Give(ev.data)
 			} else {
-				log.Print("Proxy NULL")
+				log.Print("Not dispatched")
 			}
+		} else {
+			log.Print("Proxy NULL")
 		}
 	}
 }

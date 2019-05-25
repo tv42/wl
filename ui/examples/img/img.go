@@ -59,14 +59,7 @@ func main() {
 
 	window.Draw(img)
 
-loop:
-	for {
-		select {
-		case <-exitChan:
-			break loop
-		case display.Dispatch() <- struct{}{}:
-		}
-	}
+	<-exitChan
 
 	log.Print("Loop finished")
 	window.Dispose()
