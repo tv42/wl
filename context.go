@@ -1,7 +1,6 @@
 package wl
 
 import (
-	"context"
 	"errors"
 	"io"
 	"log"
@@ -71,8 +70,6 @@ func Connect(addr string) (ret *Display, err error) {
 }
 
 func (c *Context) run() {
-	ctx := context.Background()
-
 loop:
 	for {
 		ev, err := c.readEvent()
@@ -89,7 +86,7 @@ loop:
 		proxy := c.lookupProxy(ev.pid)
 		if proxy != nil {
 			if dispatcher, ok := proxy.(Dispatcher); ok {
-				dispatcher.Dispatch(ctx, ev)
+				dispatcher.Dispatch(ev)
 				bytePool.Give(ev.data)
 			} else {
 				log.Print("Not dispatched")

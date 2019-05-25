@@ -1,16 +1,15 @@
 package wl
 
-import (
-	"context"
-)
-
 //go:generate go run github.com/dkolbly/wl-scanner -source https://cgit.freedesktop.org/wayland/wayland/plain/protocol/wayland.xml -output client.go
 
 type ProxyId uint32
 
 type Dispatcher interface {
-	Dispatch(context.Context, *Event)
+	Dispatch(*Event)
 }
+
+// ensure this interface matches what the generated code does
+var _ Dispatcher = (*Registry)(nil)
 
 type Proxy interface {
 	Context() *Context
