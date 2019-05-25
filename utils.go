@@ -7,13 +7,13 @@ import (
 )
 
 type BytePool struct {
-	sync.Pool
+	p sync.Pool
 }
 
 var (
 	order    binary.ByteOrder
 	bytePool = &BytePool{
-		sync.Pool{
+		p: sync.Pool{
 			New: func() interface{} {
 				return make([]byte, 16)
 			},
@@ -22,7 +22,7 @@ var (
 )
 
 func (bp *BytePool) Take(n int) []byte {
-	buf := bp.Get().([]byte)
+	buf := bp.p.Get().([]byte)
 	if cap(buf) < n {
 		t := make([]byte, len(buf), n)
 		copy(t, buf)
@@ -32,7 +32,7 @@ func (bp *BytePool) Take(n int) []byte {
 }
 
 func (bp *BytePool) Give(b []byte) {
-	bp.Put(b)
+	bp.p.Put(b)
 }
 
 func init() {
