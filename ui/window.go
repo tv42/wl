@@ -19,7 +19,6 @@ type Window struct {
 	buffer     *wl.Buffer
 	data       []byte
 	image      *BGRA
-	title      string
 	pending    Config
 	current    Config
 }
