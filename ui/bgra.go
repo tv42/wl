@@ -1,10 +1,11 @@
 package ui
 
 import (
-	"github.com/golang/freetype/raster"
 	"image"
 	"image/color"
 	"image/draw"
+
+	"github.com/golang/freetype/raster"
 )
 
 // BGRA is like RGBA but in wayland's byte order
