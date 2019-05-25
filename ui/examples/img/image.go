@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"image"
-	"image/draw"
 	"os"
 )
 
@@ -28,11 +27,4 @@ func ImageFromFile(filePath string) (image.Image, error) {
 		return nil, err
 	}
 	return img, nil
-}
-
-func RGBAFromImage(img image.Image) (*image.RGBA, error) {
-	b := img.Bounds()
-	m := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
-	draw.Draw(m, m.Bounds(), img, b.Min, draw.Src)
-	return m, nil
 }
