@@ -15,14 +15,15 @@ var (
 	bytePool = &BytePool{
 		p: sync.Pool{
 			New: func() interface{} {
-				return make([]byte, 16)
+				tmp := make([]byte, 16)
+				return &tmp
 			},
 		},
 	}
 )
 
 func (bp *BytePool) Take(n int) []byte {
-	buf := bp.p.Get().([]byte)
+	buf := *(bp.p.Get().(*[]byte))
 	if cap(buf) < n {
 		t := make([]byte, len(buf), n)
 		copy(t, buf)
@@ -32,7 +33,7 @@ func (bp *BytePool) Take(n int) []byte {
 }
 
 func (bp *BytePool) Give(b []byte) {
-	bp.p.Put(b)
+	bp.p.Put(&b)
 }
 
 func init() {
