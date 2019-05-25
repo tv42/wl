@@ -3,6 +3,7 @@ package wl
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"syscall"
 )
 
@@ -43,12 +44,8 @@ func (c *Context) readEvent() (*Event, error) {
 
 	// subtract 8 bytes from header
 	data := make([]byte, int(size)-8)
-	n, err = c.conn.Read(data)
-	if err != nil {
+	if _, err = io.ReadFull(c.conn, data); err != nil {
 		return nil, err
-	}
-	if n != int(size)-8 {
-		return nil, fmt.Errorf("invalid message size")
 	}
 	ev.data = data
 
