@@ -21,7 +21,7 @@ func (c *Context) readEvent() (*Event, error) {
 
 	n, oobn, _, _, err := c.conn.ReadMsgUnix(buf[:], control)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading message header: %v", err)
 	}
 	if n != 8 {
 		return nil, fmt.Errorf("unable to read message header")
@@ -45,7 +45,7 @@ func (c *Context) readEvent() (*Event, error) {
 	// subtract 8 bytes from header
 	data := make([]byte, int(size)-8)
 	if _, err = io.ReadFull(c.conn, data); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading message body: %v", err)
 	}
 	ev.data = data
 
